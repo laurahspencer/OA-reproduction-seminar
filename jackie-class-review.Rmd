@@ -1,0 +1,128 @@
+---
+title: "Mollusc Fertilization Data"
+author: "Laura H Spencer"
+date: "11/12/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+require(here)
+require(tidyverse)
+require(plotly)
+require(vegan)
+require(cluster)
+source(file = "biostats.R")
+```
+
+```{r}
+fert.data <- read_csv(here::here("fert-data.csv"))
+
+fert.data.2 <-
+  fert.data %>%
+  select(pH.experim, Perc.Fertilization, 
+         Insemination.mins, Fert.success.mins, Sperm.pre.exp.time, 
+         egg.pre.exp.time, pH.delta, Sperm.per.mL, sperm.egg, n.females, n.males) %>%
+  mutate_if(is.factor, as.numeric) %>%
+  mutate_if(is.character, as.numeric)
+
+fert.data.3 <-
+  fert.data %>%
+  mutate_at(c("Phylum", "Common name", "Brooders/Spawniers", "Family", "Taxa", "Species") , as.factor)
+
+str(fert.data)
+```
+
+```{r}
+# plot % fert ~ delta pH by taxa
+ggplotly(fert.data.3 %>%
+ggplot(mapping=aes(x=pH.delta, y=Perc.Fertilization, group=Phylum, col=Phylum)) + 
+  geom_point(size=1.5, width=0.02) +
+  #facet_wrap(~Taxa) +
+  geom_smooth(method="lm", se=TRUE, aes(fill=Taxa)))
+
+# plot % fert ~ sperm concentration (omits lots of data)
+ggplotly(fert.data.3 %>%
+ggplot(aes(x=Insemination.mins, y=Perc.Fertilization, col=Phylum)) + 
+  geom_jitter(size=2, width=0.02))
+
+# plot % fert ~ sperm concentration (omits lots of data)
+ggplotly(fert.data.3 %>%
+ggplot(aes(x=Insemination.mins, y=Perc.Fertilization, col=pH.category)) + 
+  geom_jitter(size=2, width=0.02))
+
+ggplotly(fert.data.3 %>%
+ggplot(aes(x=pH.delta, y=Perc.Fertilization, col=Sperm.per.mL, group=pH.category)) + 
+  geom_jitter(size=2, width = 0.02) + scale_color_gradient(low = "blue", high = "red", limits=c(0, 33300000), oob=scales::squish))
+```
+
+
+Choose correlation/distance matrix b/c variables are measured on different units/scales. 
+Perform PCoA or NMDS
+
+NMDS 
+```{r}
+require(vegan)
+?vegdist
+dist.gowers <- vegdist(fert.data.2, method = "gower") #generate distance matrix  
+pcoa <- cmdscale(dist.bray, eig=T, add=T)
+ordiplot(pcoa, choices = c(1, 2))
+```
+
+
+## Try NMDS 
+
+```{r}
+spe.nmds <- metaMDS(fert.data.2, distance="gower", k=2, autotransform = F, trymax=100)
+spe.nmds
+```
+
+You can type names(spe.nmds) to obtain a list of objects resulting from the analysis.
+
+For example, spe.nmds$points contains the co-ordinates from the first two axes (in case you wanted to plot the results in another program). 
+```{r}
+names(spe.nmds)
+head(spe.nmds$points)
+```
+
+From the above summary we can see that the **stress level is relatively high and therefore indicates a poor fit between the original distance matrix and the final ordination configuration.** To improve the fit, we could try a different transformation (presence/absence) or perform NMDS with three axis (k=3). 
+
+```{r}
+spe.nmds2 <- metaMDS(fert.data.2, distance="gower", k=3, autotransform=FALSE, trymax=100)
+spe.nmds2
+```
+
+On this run, the stress improved to 16.4 indicating that the major gradients in the data set can be sufficiently captured by three dimensions. Of course, increasing the number of ordination axis will reduce the stress value (at k = n species, stress must = 0 because all species would be represented by a unique ordination axis), but the utility of NMDS, as with any ordination technique, is to summarize as much variation as possible using the fewest number of axis. Ultimately, it is the user who must decide whether the addition of dimensions is justified by the reduction in stress.
+
+Examining a scree plot of stress versus the number of dimensions can help you make this decision. Use `nmds.scree`.
+This function basically calls the metaMDS function as before, but this time it calls it once for each number of dimensions and then plots the final stress value against the number of dimensions.
+
+```{r}
+nmds.scree(fert.data.2, distance="gower", k=10, autotransform = F, trymax = 20)
+```
+
+Once the final number of dimensions has been decided upon, a Monte Carlo randomization test of the final stress value can be conducted as follows. Note that this will take a couple minutes to complete. Here we select 3 dimensinos (k=3). 
+This will return the permuted stress values (and histogram) and calculated p-value.
+
+```{r}
+nmds.monte(fert.data.2, distance="gower", k=3, autotransform=FALSE, trymax=20)
+```
+
+How good a job does NMDS do? Well, another way to determine this is to look at the correlation between the calculated dissimilarities and the plotted values (after all, that's what it's trying to maximize). Specifically, we can plot the relationship between original dissimilarities and Euclidean distances in the ordination using the stressplot() function. Try typing:
+
+```{r}
+stressplot(spe.nmds2)
+```
+
+Finally, let’s examine the 2-dimensional NMDS configuration for presentation purposes. First we will plot the objects (sites) in ordinate space to visualize the default settings.
+
+```{r}
+plot(spe.nmds,type="n") 
+text(spe.nmds,labels=fert.data.2$Perc.Fertilization)
+
+#Say we’d like to see how a particular descriptor (in this case, rosyside dace abundance) changes with location. We can make the symbol size proportional to log abundance. Try typing,
+
+plot(spe.nmds,type="n") 
+points(spe.nmds,cex=fert.data.2$pH.delta)
+```
+

@@ -1,0 +1,9 @@
+"0","# plot % fert ~ delta pH by taxa
+ggplotly(fert.data.3 %>%
+ggplot(mapping=aes(x=pH.delta, y=Perc.Fertilization, group=Phylum, col=Phylum)) + 
+  geom_point(size=1.5, width=0.02) +
+  #facet_wrap(~Taxa) +
+  geom_smooth(method=""lm"", se=TRUE, aes(fill=Taxa)))
+"
+"2","Ignoring unknown parameters: width"
+"2","Removed 6 rows containing non-finite values (stat_smooth)."

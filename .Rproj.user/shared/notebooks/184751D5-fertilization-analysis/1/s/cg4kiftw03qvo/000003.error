@@ -1,0 +1,1 @@
+{"frames":[{"character_number":0,"end_character_number":0,"end_line_number":0,"file":"","func":"vegdist(fert.data.4, \"gower\")","line_number":0},{"character_number":0,"end_character_number":0,"end_line_number":0,"file":"","func":"stop(\"input data must be numeric\")","line_number":0}],"message":"Error in vegdist(fert.data.4, \"gower\") : input data must be numeric\n"}

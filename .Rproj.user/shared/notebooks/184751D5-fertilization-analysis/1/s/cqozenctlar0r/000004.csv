@@ -1,0 +1,10 @@
+"0","# plot % fert ~ pH.experim by Phylum
+ggplotly(fert.data.3 %>%
+ggplot(mapping=aes(x=log(egg.pre.exp.time), y=Perc.Fertilization, group=Phylum, col=Phylum, text=`Common name`)) + 
+  geom_point(size=1.5, width=0.02) +
+  #facet_wrap(~Taxa) +
+  geom_smooth(method=""lm"", se=TRUE, aes(fill=Phylum)) +
+  ggtitle(""Fertilization Rate ~ Egg pre-exposure minutes by phylum""))
+"
+"2","Ignoring unknown parameters: width"
+"2","Removed 266 rows containing non-finite values (stat_smooth)."

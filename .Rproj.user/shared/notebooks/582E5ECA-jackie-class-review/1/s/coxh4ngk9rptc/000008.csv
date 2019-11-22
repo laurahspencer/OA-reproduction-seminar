@@ -1,0 +1,37 @@
+"0","nmds.scree(fert.data.2, distance=""gower"", k=10, autotransform = F, trymax = 20)
+"
+"2","package ‘MASS’ was built under R version 3.5.2"
+"2","
+Attaching package: ‘MASS’
+
+"
+"2","The following object is masked from ‘package:plotly’:
+
+    select
+
+"
+"2","The following object is masked from ‘package:dplyr’:
+
+    select
+
+"
+"2","'comm' has negative data: 'autotransform', 'noshare' and 'wascores' set to FALSE
+"
+"2","'comm' has negative data: 'autotransform', 'noshare' and 'wascores' set to FALSE
+"
+"2","'comm' has negative data: 'autotransform', 'noshare' and 'wascores' set to FALSE
+"
+"2","'comm' has negative data: 'autotransform', 'noshare' and 'wascores' set to FALSE
+"
+"2","'comm' has negative data: 'autotransform', 'noshare' and 'wascores' set to FALSE
+"
+"2","'comm' has negative data: 'autotransform', 'noshare' and 'wascores' set to FALSE
+"
+"2","'comm' has negative data: 'autotransform', 'noshare' and 'wascores' set to FALSE
+"
+"2","'comm' has negative data: 'autotransform', 'noshare' and 'wascores' set to FALSE
+"
+"2","'comm' has negative data: 'autotransform', 'noshare' and 'wascores' set to FALSE
+"
+"2","'comm' has negative data: 'autotransform', 'noshare' and 'wascores' set to FALSE
+"

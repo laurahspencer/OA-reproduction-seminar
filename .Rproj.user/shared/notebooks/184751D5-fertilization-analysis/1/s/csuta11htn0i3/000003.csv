@@ -1,0 +1,10 @@
+"0","pdf(file = ""fert-correlation-panel.pdf"", width = 12, height = 8.5)
+pairs(na.omit(fert.data.2), lower.panel=panel.smooth, upper.panel=panel.cor) 
+dev.off()
+"
+"1","null device "
+"1","
+"
+"1","          1 "
+"1","
+"

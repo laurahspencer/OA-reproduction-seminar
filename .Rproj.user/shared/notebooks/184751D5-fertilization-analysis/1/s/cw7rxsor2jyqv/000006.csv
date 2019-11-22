@@ -1,0 +1,11 @@
+"0","ggplotly(fert.data.3 %>%
+ggplot(mapping=aes(x=log(Sperm.per.mL+1), y=Perc.Fertilization, group=Phylum:pH.group, col=Phylum:pH.group, text=`Common name`, shape=pH.group)) + 
+  geom_point(size=1.5, width=0.02) +
+  #facet_wrap(~Taxa) +
+  geom_smooth(method=""lm"", se=TRUE, aes(fill=Phylum:pH.group)) +
+  ggtitle(""Fertilization Rate ~ sperm concentration (log-trans) by phylum""))
+"
+"2","Ignoring unknown parameters: width"
+"2","Removed 204 rows containing non-finite values (stat_smooth)."
+"2","Factor `Phylum:pH.group` contains implicit NA, consider using `forcats::fct_explicit_na`"
+"2","Factor `Phylum:pH.group` contains implicit NA, consider using `forcats::fct_explicit_na`"
