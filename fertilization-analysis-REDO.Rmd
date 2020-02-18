@@ -40,24 +40,28 @@ data.fert <- data.fert %>%
 str(data.fert)   
 ```
 
-### Explore data with plotly figures 
+### Explore data with figures 
 
 ```{r}
-ggplotly(data.fert %>%
+#ggplotly(
+data.fert %>%
 ggplot(mapping=aes(x=p_h_experimental, y=ave_fert_percent_p_h, group=taxonomic_group, col=taxonomic_group, text=`common_name`)) + 
   geom_point(size=1.5, width=0.02) +
   facet_wrap(~phylum, scale="free") +
   geom_smooth(method="lm", se=TRUE, aes(fill=taxonomic_group)) +
   ggtitle("Fertilization Rate ~ pH exposure by phylum, linear") +
-  theme_minimal())
+  theme_minimal() 
+#)
 
-ggplotly(data.fert %>%
+#ggplotly(
+data.fert %>%
 ggplot(mapping=aes(x=p_h_experimental, y=ave_fert_percent_p_h, group=taxonomic_group, col=taxonomic_group, text=`common_name`)) + 
   geom_point(size=1, width=0.02) +
   facet_wrap(~phylum, scale="free") +
   geom_smooth(method="lm", se=TRUE, formula=y ~ poly(x, 2, raw=TRUE), aes(fill=taxonomic_group)) +
   ggtitle("Fertilization Rate ~ pH exposure by phylum, polynomial") +
-  theme_minimal())
+  theme_minimal()
+#)
 ```
 
 ### Convert all error values to separate SE & SD columns 
@@ -191,9 +195,11 @@ confint(test5)
 
 # Instpect residuals ~ fitted values 
 aa5 <- augment(test5, data=data.fert)
-ggplotly(ggplot(aa5, aes(x=.fitted,y=.resid)) + 
+#ggplotly(
+ggplot(aa5, aes(x=.fitted,y=.resid)) + 
     geom_point() + 
-  geom_smooth())
+  geom_smooth()
+#)
 ```
 
 ### Generate model predictions and plot against real data 
@@ -222,7 +228,8 @@ predict.test.df.df <- predict.test.df %>%
 #scales::show_col(c("#e41a1c","#4daf4a","#ff7f00","#984ea3",'#377eb8'))
 
 # Data with beta regression model fit 
-ggplotly(ggplot() + 
+#ggplotly(
+ggplot() + 
   geom_jitter(data=data.fert, aes(x=p_h_experimental, y=ave_fert_proport, group=phylum, col=phylum), size=1.2, width=0.03) +
   #facet_wrap(~phylum, scales="free") + theme_minimal() +
   ggtitle("% fertilization ~ pH with binomial-regression model predictions") + 
@@ -231,5 +238,6 @@ ggplotly(ggplot() +
   theme_minimal() + 
   coord_cartesian(ylim = c(0, 1), xlim =c(6,8.5)) +
   geom_line(data = predict.test.df.df, aes(x=p_h_experimental, y=fit), col="gray50") + #, col=phylum
-  geom_ribbon(data = predict.test.df.df, aes(x=p_h_experimental, ymin=fit-se.fit, ymax=fit+se.fit), linetype=2, alpha=0.1, col="gray50")) #, fill=phylum
+  geom_ribbon(data = predict.test.df.df, aes(x=p_h_experimental, ymin=fit-se.fit, ymax=fit+se.fit), linetype=2, alpha=0.1, col="gray50") #, fill=phylum
+#) 
 ```
