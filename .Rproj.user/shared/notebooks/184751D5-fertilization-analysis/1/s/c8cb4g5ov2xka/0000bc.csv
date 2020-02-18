@@ -1,2 +1,0 @@
-"0","points(pl, ""sites"", cex=0.8, pch=c(21,22,23,24)[fert.data.4$pH.group], "
-"0","       bg=c(""red"",""blue"",""green"",""purple"")[fert.data.4$Phylum])"

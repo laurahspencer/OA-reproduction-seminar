@@ -1,4 +1,0 @@
-"0","dist.gower <- vegdist(fert.data.4, ""gower"") 
-"
-"2","Error in vegdist(fert.data.4, ""gower"") : input data must be numeric
-"

@@ -10,8 +10,12 @@ require(tidyverse)
 require(plotly)
 require(vegan)
 require(cluster)
+require(purrr)
+require(metafor)
+require(glmmTMB)
 source(here::here("biostats.R"))
 source(here::here("panelcor.R"))
+
 ```
 
 ### Read in data 
@@ -30,13 +34,26 @@ fert.data.2 <-
 fert.data.3 <-
   fert.data %>%
   mutate_at(c("Phylum", "Common name", "Brooders/Spawniers", "Family", "Taxa", "Species") , as.factor)
-fert.data.3$pH.group <- cut(fert.data.3$pH.experim,c(6,7.3,7.5,7.8, 8.2))
+fert.data.3$pH.group <- cut(fert.data.3$pH.experim,c(5.9,7.3,7.5,7.8, 8.2))
 fert.data.3$Phylum <- factor(fert.data.3$Phylum, levels = c("Echinodermata", "Mollusca","Cnidaria","Crustacean"))
-str(fert.data.3)
 fert.data.4 <- fert.data.3[,c(1,5,7:9,11,12,16:19)] %>%
     mutate_if(is.factor, as.numeric) %>% #convert factors to numeric factors 
     mutate_if(is.character, as.numeric)  #convert character column to numeric 
+```
 
+#### Check out correlations among variables
+
+- Insemination minutes ~ Fertilization success mins - only use insemination minutes 
+- pH delta ~ pH experimental - only use pH experimental  
+other correlations, but not relevant (e.g. sperm/mL and egg pre-exposure time)
+
+```{r}
+pairs(na.omit(fert.data.4), lower.panel=panel.smooth, upper.panel=panel.cor) 
+
+# save to pdf 
+pdf(file = "fert-correlation-panel.pdf", width = 12, height = 8.5)
+pairs(na.omit(fert.data.4), lower.panel=panel.smooth, upper.panel=panel.cor) 
+dev.off()
 ```
 
 ### Generate distance matrixusing gowers coefficient 
@@ -97,69 +114,54 @@ p.max is the significance level that the species occurrence data must have with 
 
 ```{r}
 fert.data.4$pH.group <- cut(fert.data.4$pH.experim, c(6,7.3,7.5,7.8, 8.2))
+pl <- ordiplot(spe.pcoa, type = "none",  xlim = c(-1,1.5))
+points(pl, "sites", cex=0.8, pch=c(21,22,23,24)[fert.data.4$pH.group], bg=c("red","blue","green","purple")[fert.data.4$Phylum])
+plot(vec.sp, p.max=.01, col="black") # note, p.max = set p-value threshold for plotting vectors.
+legend(x="topright", legend = levels(fert.data.3$Phylum), col=c("red","blue","green", "purple"), pch=c(16,16,16,16))
+legend(x="right", legend = levels(fert.data.3$pH.group),pch=c(21,22,23,24))
+
+# save to pdf 
 pdf(file = "fert.PCoA.pdf", width = 9, height = 8)
 pl <- ordiplot(spe.pcoa, type = "none",  xlim = c(-1,1.5))
-points(pl, "sites", cex=0.8, pch=c(21,22,23,24)[fert.data.4$pH.group], 
-       bg=c("red","blue","green","purple")[fert.data.4$Phylum])
-plot(vec.sp, p.max=.01, col="black") # note, p.max = set p-value threshold for plotting vectors. 
+points(pl, "sites", cex=0.8, pch=c(21,22,23,24)[fert.data.4$pH.group], bg=c("red","blue","green","purple")[fert.data.4$Phylum])
+plot(vec.sp, p.max=.01, col="black") # note, p.max = set p-value threshold for plotting vectors.
 legend(x="topright", legend = levels(fert.data.3$Phylum), col=c("red","blue","green", "purple"), pch=c(16,16,16,16))
 legend(x="right", legend = levels(fert.data.3$pH.group),pch=c(21,22,23,24))
 dev.off()
 ```
 
-#### Re-run PCoA, leave pH out of matrix, but then color code points that way.   
+#### Re-run PCoA, leave phylum and taxa out of matrix, but then color code points that way.   
 
 ```{r}
-dist.gower2 <- vegdist(fert.data.4[c(2,4:11)], "gower", na.rm = F) 
+dist.gower2 <- vegdist(fert.data.4[c(3:11)], "gower", na.rm = F) 
 spe.pcoa2 <- cmdscale(dist.gower2, k=2, eig=T, add=T)
-print(vec.sp2<-envfit(spe.pcoa2$points, k=45, fert.data.4[c(2,4:11)], perm=1000, na.rm=T))
-pdf(file = "fert.PCoA-nopH.pdf", width = 9, height = 8)
+print(vec.sp2<-envfit(spe.pcoa2$points, k=45, fert.data.4[c(3:11)], perm=1000, na.rm=T))
 pl2 <- ordiplot(spe.pcoa2, type = "none",  xlim = c(-1,1.5))
-points(pl2, "sites", cex=0.8, pch=c(21,22,23,24)[fert.data.4$pH.group], 
-       bg=c("red","blue","green","purple")[fert.data.4$Phylum])
+points(pl2, "sites", cex=1, pch=c(21,22,23,24)[fert.data.4$Phylum],
+       bg=c("red","blue","green","purple")[fert.data.4$pH.group])
 plot(vec.sp2, p.max=.01, col="black") # note, p.max = set p-value threshold for plotting vectors. 
-legend(x="topright", legend = levels(fert.data.3$Phylum), col=c("red","blue","green", "purple"), pch=c(16,16,16,16))
-legend(x="right", legend = levels(fert.data.3$pH.group),pch=c(21,22,23,24))
+legend(x="topright", legend = levels(fert.data.3$pH.group), col=c("red","blue","green", "purple"), pch=c(16,16,16,16))
+legend(x="bottomright", legend = levels(fert.data.3$Phylum),pch=c(21,22,23,24))
+
+# Save to pdf  
+pdf(file = "fert.PCoA-noPhylum.pdf", width = 9, height = 8)
+pl2 <- ordiplot(spe.pcoa2, type = "none",  xlim = c(-1,1.5))
+points(pl2, "sites", cex=1, pch=c(21,22,23,24)[fert.data.4$Phylum],
+       bg=c("red","blue","green","purple")[fert.data.4$pH.group])
+plot(vec.sp2, p.max=.01, col="black") # note, p.max = set p-value threshold for plotting vectors. 
+legend(x="topright", legend = levels(fert.data.3$pH.group), col=c("red","blue","green", "purple"), pch=c(16,16,16,16))
+legend(x="bottomright", legend = levels(fert.data.3$Phylum),pch=c(21,22,23,24))
 dev.off()
 ```
 
-
-
-#### Run correlation test with factors with significant loadings on dimensions 1 and 2
-All of the below except _Sperm.pre.exp.time_, _sperm.egg_, and _n.males_. 
-
-***VECTORS
-                       Dim1     Dim2     r2   Pr(>r)    
-pH.experim         -0.78537  0.61903 0.9157 0.000999 ***
-Perc.Fertilization -0.76812 -0.64030 0.8868 0.000999 ***
-Insemination.mins   0.42319 -0.90604 0.3439 0.000999 ***
-Fert.success.mins   0.38683 -0.92215 0.3583 0.000999 ***
-Sperm.pre.exp.time  0.95118  0.30863 0.0034 0.880120    
-egg.pre.exp.time    0.82583  0.56392 0.2503 0.001998 ** 
-pH.delta           -0.73572  0.67729 0.7674 0.000999 ***
-Sperm.per.mL        0.81881  0.57406 0.2492 0.001998 ** 
-sperm.egg           0.20294  0.97919 0.0953 0.038961 *  
-n.females           0.90918  0.41640 0.2463 0.001998 ** 
-n.males             0.86065  0.50920 0.0570 0.127872    
-
-
-#### Check out correlations among variables
-
-- Insemination minutes ~ Fertilization success mins - only use insemination minutes 
-- pH delta ~ pH experimental - only use pH experimental  
-other correlations, but not relevant (e.g. sperm/mL and egg pre-exposure time)
+# Perform linear regression analysis by phylum 
 
 ```{r}
-pdf(file = "fert-correlation-panel.pdf", width = 12, height = 8.5)
-pairs(na.omit(fert.data.4), lower.panel=panel.smooth, upper.panel=panel.cor) 
-dev.off()
+hist(fert.data.4$Perc.Fertilization)
 ```
 
-Plot factors that were deemed sign. in PCoA 
 
-#### Test experimental pH 
-
-pH.experim         -0.78537  0.61903 0.9157 0.000999 ***
+## Plot fertilization by experimental pH and phylum 
 
 ```{r}
 # plot % fert ~ pH.experim by Phylum
@@ -170,8 +172,550 @@ ggplot(mapping=aes(x=pH.experim, y=Perc.Fertilization, group=Phylum, col=Phylum,
   geom_smooth(method="lm", se=TRUE, aes(fill=Phylum)) +
   ggtitle("Fertilization Rate ~ pH exposure by phylum"))
 
-summary(aov(Perc.Fertilization ~ factor(Phylum)*pH.experim, fert.data.3)) #significant alone and interaction  
+ggplotly(fert.data.3 %>%
+ggplot(mapping=aes(x=pH.experim, y=Perc.Fertilization, group=Taxa, col=Taxa, text=`Common name`)) + 
+  geom_point(size=1.5, width=0.02) +
+  facet_wrap(~Phylum, scale="free") +
+  geom_smooth(method="lm", se=TRUE, aes(fill=Taxa)) +
+  ggtitle("Fertilization Rate ~ pH exposure by phylum") +
+  theme_minimal())
+``` 
+
+# Run beta model 
+
+
+```{r}
+fert.data.3$fert <- fert.data.3$Perc.Fertilization/100
+
+test <- fert.data.3 %>%
+  filter(Perc.Fertilization != NA)
+
+glmmTMB(fert ~ Phylum, data=fert.data.3, beta_family(link = "logit"), na.action=na.exclude)
+
 ```
+
+
+
+# Mollusca 
+
+```{r}
+fert<-subset(fert.data.3, Phylum=="Mollusca")$Perc.Fertilization
+ph<-subset(fert.data.3, Phylum=="Mollusca")$pH.experim
+summary(model1 <- lm(fert~ph))
+plot(ph,fert,pch=21,col="brown",bg="yellow")
+abline(model1,col="navy")
+
+summary(model2 <- lm(fert~ph+I(ph^2)))
+x <- c(5.5, 5.6, 5.7, 5.8, 5.9, 6, 6.1, 6.2, 6.3, 6.4, 6.5, 6.6, 6.7, 6.8, 6.9, 7, 7.1, 7.2, 7.3, 7.4, 7.5, 7.6, 7.7, 7.8, 7.9, 8, 8.1, 8.2, 8.3)
+y <- predict(model2,list(ph=x))
+plot(ph,fert,pch=21,col="brown",bg="yellow")
+lines(x,y,col="navy")
+anova(model1, model2) # simple model as good as polynomial model. 
+hist(model1$residuals) #check residuals 
+plot(model1)
+
+taxa <- as.factor(droplevels(subset(fert.data.3, Phylum=="Mollusca")$Taxa))
+summary(model2 <- lm(fert~ph+taxa)) #common slope, different intercepts by taxa 
+anova(model1, model2) # definitely need to include sep. lines for taxa w/ diff intercepts 
+summary(model3 <- lm(fert~ph*taxa)) # test for diff slopes and intercepts 
+anova(model2, model3) # don't need diff slopes 
+summary(model4 <- lm(fert~ph+I(ph^2) + taxa)) #test polynomial with taxa 
+anova(model2, model4) # improves the model 
+summary(model5 <- lm(fert~ph+I(ph^2)+I(ph^3)+ taxa)) #<----------final model 
+anova(model4, model5) # improves the model 
+summary(model6 <- lm(fert~(ph+I(ph^2)+I(ph^3))*taxa))
+anova(model5, model6) # improves the model 
+summary(model7 <- lm(fert~(ph+I(ph^2))*taxa))
+anova(model6, model7) # improves the model 
+
+AIC(model1, model2, model3, model4, model5, model6, model7) #AIC confirms that model6 is best 
+hist(model6$residuals) #residuals look pretty normal 
+plot(model6) #i see no major issues with residuals 
+
+lm.mollusc <-   lm(fert~(ph+I(ph^2)+I(ph^3))*taxa) #<----------SET FINAL MODEL HERE FOR FIGURE 
+```
+
+
+### Mollusca - Generate predictions from fitted model to plot 
+
+```{r}
+# Test differences among taxa 
+
+taxa <- relevel(taxa, ref = "abalone")
+summary(lm(fert~ph+I(ph^2)+I(ph^3)+ taxa))
+summary(lm(fert~(ph+I(ph^2)+I(ph^3))*taxa))
+
+# Different slope from abalone? 
+# taxaclam      -40.635      4.576  -8.879 3.19e-15 *** <-- YES 
+# taxamussel     -2.877      4.611  -0.624 0.533666     <-- NO 
+# taxaoyster    -31.339      4.155  -7.543 5.56e-12 *** <-- YES
+# taxascallop   -14.001      6.092  -2.298 0.023058 *   <-- YES
+
+taxa <- relevel(taxa, ref = "clam")
+summary(lm(fert~ph+I(ph^2)+I(ph^3)+ taxa))
+summary(lm(fert~(ph+I(ph^2)+I(ph^3))*taxa))
+
+# Different slope from clam? 
+# taxaabalone    40.635      4.576   8.879 3.19e-15 ***  <-- YES
+# taxamussel     37.757      4.163   9.071 1.06e-15 ***  <-- YES
+# taxaoyster      9.295      3.814   2.437 0.016073 *    <-- YES
+# taxascallop    26.634      5.852   4.551 1.16e-05 ***  <-- YES
+
+taxa <- relevel(taxa, ref = "mussel")
+summary(lm(fert~ph+I(ph^2)+I(ph^3)+ taxa))
+summary(lm(fert~(ph+I(ph^2)+I(ph^3))*taxa)) # indicates slopes are diff. between mussel and oyster 
+
+# Different slope from mussel? 
+# taxamussel     37.757      4.163   9.071 1.06e-15 *** <-- YES
+# taxaabalone    40.635      4.576   8.879 3.19e-15 *** <-- YES
+# taxaoyster      9.295      3.814   2.437 0.016073 *   <-- YES
+# taxascallop    26.634      5.852   4.551 1.16e-05 *** <-- YES
+
+taxa <- relevel(taxa, ref = "oyster")
+summary(lm(fert~ph+I(ph^2)+I(ph^3)+ taxa))
+summary(lm(fert~(ph+I(ph^2)+I(ph^3))*taxa)) # indicates slopes are diff. between mussel and oyster 
+
+# Different slope from oyster? 
+# taxaclam       -9.295      3.814  -2.437 0.016073 *   <-- YES 
+# taxaabalone    31.339      4.155   7.543 5.56e-12 *** <-- YES
+# taxamussel     28.462      3.636   7.829 1.17e-12 *** <-- YES
+# taxascallop    17.338      5.464   3.173 0.001859 **  <-- YES
+
+ph.min.max <- fert.data.3 %>% 
+  select(Phylum, Taxa, pH.experim) %>% 
+  group_by(Phylum, Taxa) %>% 
+  summarize(min=min(pH.experim, na.rm=TRUE), max=max(pH.experim, na.rm=TRUE))
+  
+taxa.list <- list()
+for (i in 1:nrow(ph.min.max)) {
+  taxa.list[[i]] <- data.frame(ph=c(seq(from=as.numeric(ph.min.max[i,"min"]), 
+                            to=as.numeric(ph.min.max[i,"max"]), 
+                            by=0.01)),
+                   taxa=rep(c(ph.min.max[i,"Taxa"])),
+                   phylum=rep(c(ph.min.max[i,"Phylum"])))
+}
+new.data <- bind_rows(taxa.list) %>% purrr::set_names(c("ph", "taxa", "phylum"))
+
+# new.data = data.frame(
+#   ph=rep(c(seq(from=5.95, to=8.3, by=0.01)), each=5), 
+#   taxa=rep(levels(droplevels(subset(fert.data.3, Phylum=="Mollusca")$Taxa))))
+
+predict.mollusc <- predict(lm.mollusc, interval = 'confidence', newdata = subset(new.data, phylum=="Mollusca")[,1:2])
+predict.mollusc.df <- predict.mollusc %>%
+  as.data.frame() %>%
+  cbind(subset(new.data, phylum=="Mollusca"))
+predict.mollusc.df$taxa  <- factor(droplevels(predict.mollusc.df$taxa), levels=c("abalone", "mussel", "scallop", "oyster", "clam"))
+
+```
+
+### Mollusca - Plot fertilization data with fitted models  
+
+```{r}
+scales::show_col(c("#e41a1c","#4daf4a","#ff7f00","#984ea3",'#377eb8'))
+
+Mollusc.ph <- fert.data.3 %>%
+  filter(Phylum=="Mollusca") %>%
+  mutate(Taxa = fct_relevel(Taxa, c("abalone", "mussel", "scallop", "oyster", "clam")))
+
+ggplotly(ggplot() + 
+  geom_jitter(data=Mollusc.ph, aes(x=pH.experim, y=qlogis(Perc.Fertilization/100), group=Taxa, col=Taxa, text=`Common name`), size=1.2, width=0.03) +
+  #facet_wrap(~Phylum, scales="free") + theme_minimal() +
+  #geom_smooth(method="lm", se=F, aes(col=Taxa), formula=y ~ poly(x, 2, raw=TRUE)) +
+  ggtitle("Mollusca") + 
+  xlab("Experimental pH") + ylab("Fertilization %") +
+  scale_color_manual(values=c("#e41a1c","#ff7f00","#4daf4a",'#377eb8',"#984ea3")) +
+  #scale_color_discrete(name="Taxa",
+      #breaks=c("abalone","mussel","scallop","oyster","clam")) +
+  theme_minimal())# + 
+  #geom_line(data = predict.mollusc.df, aes(x=ph, y=fit, col=taxa)) +
+   # geom_ribbon(data = predict.mollusc.df, aes(x=ph, ymin=lwr, ymax=upr, fill=taxa), linetype=2, alpha=0.1))
+```
+
+
+# Echinoderms  
+
+```{r}
+fert<-subset(fert.data.3, Phylum=="Echinodermata")$Perc.Fertilization
+ph<-subset(fert.data.3, Phylum=="Echinodermata")$pH.experim
+taxa <- as.factor(subset(fert.data.3, Phylum=="Echinodermata")$Taxa)
+
+summary(model1 <- lm(fert~ph))
+hist(model1$residuals)
+plot(ph,fert,pch=21,col="brown",bg="yellow")
+abline(model1,col="navy")
+x <- c(5.5, 5.6, 5.7, 5.8, 5.9, 6, 6.1, 6.2, 6.3, 6.4, 6.5, 6.6, 6.7, 6.8, 6.9, 7, 7.1, 7.2, 7.3, 7.4, 7.5, 7.6, 7.7, 7.8, 7.9, 8, 8.1, 8.2, 8.3)
+
+summary(model2 <- lm(fert~ph+I(ph^2)))
+y <- predict(model2,list(ph=x))
+plot(ph,fert,pch=21,col="brown",bg="yellow")
+lines(x,y,col="navy")
+anova(model1, model2) 
+
+summary(model1 <- lm(fert~ph)) 
+summary(model2 <- lm(fert~ph+I(ph^2))) 
+anova(model1, model2) #2nd order polynomial better fit than straight line 
+summary(model3 <- lm(fert~ph+taxa)) # test different intercepts by taxa, common slope 
+anova(model1, model3) #different intercept by taxa improves model 
+summary(model4 <- lm(fert~ph*taxa))# test diff slopes AND intercepts by taxa 
+anova(model3, model4) # slopes not important 
+summary(model5 <- lm(fert~ph+taxa+I(ph^2))) #test 2nd order polynomial with taxa intercepts 
+anova(model3, model5) # adding 2nd order improves ph+taxa model. 
+anova(model2, model5) # adding taxa improves ph+2nd order model. 
+summary(model6 <- lm(fert~ph+I(ph^2)+I(ph^3)+ taxa)) # test adding 3rd order <----------final model 
+anova(model5, model6) # adding 3rd order improves model 
+summary(model7 <- lm(fert~(ph+I(ph^2)+I(ph^3))*taxa)) # test varying slopes by taxa 
+anova(model6, model7) # adding 3rd order improves model. Does not improve model 
+AIC(model1, model2, model3, model4, model5, model6, model7)
+
+hist(model6$residuals) #residuals kind of normal ?
+plot(model6) #doesn't look totally okay. should follow up. 
+
+lm.echino <- lm(fert~ph+I(ph^2)+I(ph^3)+ taxa)
+#lm.echino <- lm(fert~(ph+I(ph^2)+I(ph^3))*taxa)
+```
+
+
+### Echinoderm - Generate predictions from fitted model to plot 
+
+```{r}
+predict.echino <- predict(lm.echino, interval = 'confidence', newdata = subset(new.data, phylum=="Echinodermata")[,1:2])
+predict.echino.df <- predict.echino %>%
+  as.data.frame() %>%
+  cbind(subset(new.data, phylum=="Echinodermata"))
+predict.echino.df$taxa  <- factor(droplevels(predict.echino.df$taxa), levels=c("Sea star", "Sea urchin", "Sand dollar"))
+```
+
+### Echinoderm - Plot fertilization data with fitted models  
+
+```{r}
+Echino.ph <- fert.data.3 %>%
+  filter(Phylum=="Echinodermata") %>%
+  mutate(Taxa = fct_relevel(Taxa, c("Sea star", "Sea urchin", "Sand dollar")))
+
+ggplotly(ggplot() + 
+  geom_jitter(data=Echino.ph, aes(x=pH.experim, y=Perc.Fertilization, group=Taxa, col=Taxa, text=`Common name`), size=1.2, width=0.03) +
+  #facet_wrap(~Phylum, scales="free") + theme_minimal() +
+  #geom_smooth(method="lm", se=F, aes(col=Taxa), formula=y ~ poly(x, 2, raw=TRUE)) +
+  ggtitle("Echinodermata") + 
+  xlab("Experimental pH") + ylab("Fertilization %") +
+  scale_color_manual(values=c("#e41a1c","#ff7f00","#4daf4a")) +
+  theme_minimal() + 
+  geom_line(data = predict.echino.df, aes(x=ph, y=fit, col=taxa)) +
+    geom_ribbon(data = predict.echino.df, aes(x=ph, ymin=lwr, ymax=upr, fill=taxa), linetype=2, alpha=0.1) +
+   scale_fill_manual(values=c("#e41a1c","#ff7f00","#4daf4a")))
+```
+
+# Cnidaria   
+
+```{r}
+fert<-subset(fert.data.3, Phylum=="Cnidaria")$Perc.Fertilization
+ph<-subset(fert.data.3, Phylum=="Cnidaria")$pH.experim
+sperm <- subset(fert.data.3, Phylum=="Cnidaria")$Sperm.per.mL
+ph.group <- as.factor(subset(fert.data.3, Phylum=="Cnidaria")$pH.group)
+genera <- as.factor(subset(fert.data.3, Phylum=="Cnidaria")$Family)
+species <- as.factor(subset(fert.data.3, Phylum=="Cnidaria")$Species)
+x <- c(7.4, 7.5, 7.6, 7.7, 7.8, 7.9, 8, 8.1, 8.2, 8.3)
+
+summary(model0 <- lm(fert~ph, na.action = na.exclude)) #pH not sign. alone 
+summary(model1 <- lm(fert~ph.group, na.action = na.exclude)) # ph.group not sign. alone 
+summary(model2 <- lm(fert~sperm, na.action = na.exclude)) # sperm concentration sign. factor 
+summary(model3 <- lm(fert~sperm+ph, na.action = na.exclude)) # pH.group not sign. after controlling for sperm conc. intercept 
+summary(model4 <- lm(fert~sperm+ph.group, na.action = na.exclude)) # pH.group not sign. after controlling for sperm conc. intercept 
+summary(model5 <- lm(fert~sperm*ph, na.action = na.exclude)) # pH not sign. after controlling for sperm conc. intercept 
+summary(model6 <- lm(fert~sperm*ph.group, na.action = na.exclude)) # ph.group not sign. after controlling for sperm 
+summary(model3 <- lm(fert~sperm+ph, na.action = na.exclude)) 
+summary(model7 <- lm(fert~sperm+ph+I(ph^2), na.action = na.exclude))
+summary(model8 <- lm(fert~sperm+ph+I(ph^2)+I(ph^3), na.action = na.exclude)) 
+summary(model9 <- lm(fert~ph+sperm+I(sperm^2), na.action = na.exclude)) #<--- lowest AIC 
+summary(model10 <- lm(fert~ph+sperm+I(sperm^2)+I(sperm^3), na.action = na.exclude)) 
+summary(model11 <- lm(fert~ph.group+sperm+I(sperm^2), na.action = na.exclude)) 
+AIC(model0, model1, model2, model3, model4, model5, model6, model7, model8, model9, model10, model11) 
+anova(model3, model9) #model 9 improves model 3 by adding a 2nd order polynomial sperm variable 
+hist(model9$residuals) #kinda normal 
+plot(model9) #somewhat concerning ... check back later 
+
+summary(model12 <- lm(fert ~ species*ph, na.action = na.exclude))
+summary(model13 <- lm(fert ~ species+ph, na.action = na.exclude))
+summary(model14 <- lm(fert ~ genera*ph, na.action = na.exclude))
+summary(model15 <- lm(fert ~ genera+ph))
+summary(model15 <- lm(fert ~ genera+ph))
+anova(model16 <- lm(fert ~ species+ph+sperm, na.action = na.exclude))
+summary(model17 <- lm(fert ~ genera+ph+sperm, na.action = na.exclude))
+anova(model13, model6)
+
+AIC(model0, model1, model2, model3, model4, model5, model6, model7, model8, model9, model10, model11, model12, model13, model14, model15, model16, model17) 
+hist(model13$residuals) #kinda normal 
+plot(model13) #somewhat concerning ... check back later 
+
+```
+
+### Cnidaria - Generate predictions from fitted model to plot 
+
+```{r}
+predict.cnid <- predict(model16, interval = 'confidence') 
+predict.cnid.df <- cbind(as.data.frame(predict.cnid),
+        subset(fert.data.3, Phylum=="Cnidaria")$pH.experim,
+        subset(fert.data.3, Phylum=="Cnidaria")$Sperm.per.mL,
+        subset(fert.data.3, Phylum=="Cnidaria")$Family,
+        subset(fert.data.3, Phylum=="Cnidaria")$Species) %>%
+  purrr::set_names(c("fit", "lwr", "upr", "ph", "sperm", "genera", "species"))
+
+Cnid.ph.min.max <- fert.data.3 %>% 
+  filter(Phylum=="Cnidaria") %>%
+  select(Phylum, Taxa, pH.experim, Species) %>% 
+  group_by(Phylum, Taxa, Species) %>% 
+  summarize(min=min(pH.experim, na.rm=TRUE), max=max(pH.experim, na.rm=TRUE))
+  
+taxa.list.cnid <- list()
+for (i in 1:nrow(Cnid.ph.min.max)) {
+  taxa.list[[i]] <- data.frame(ph=c(seq(from=as.numeric(Cnid.ph.min.max[i,"min"]), 
+                            to=as.numeric(Cnid.ph.min.max[i,"max"]), 
+                            by=0.01)),
+                   taxa=rep(c(Cnid.ph.min.max[i,"Taxa"])),
+                   species=rep(c(Cnid.ph.min.max[i,"Species"])),
+                   phylum=rep(c(Cnid.ph.min.max[i,"Phylum"])))
+}
+new.data.cnid <- bind_rows(taxa.list) %>% purrr::set_names(c("ph", "taxa", "species", "phylum"))
+
+# new.data = data.frame(
+#   ph=rep(c(seq(from=5.95, to=8.3, by=0.01)), each=5), 
+#   taxa=rep(levels(droplevels(subset(fert.data.3, Phylum=="Mollusca")$Taxa))))
+
+predict.cnid <- predict(model13, interval = 'confidence', newdata = new.data.cnid[,c(1,3)])
+predict.cnid.df <- predict.cnid %>%
+  as.data.frame() %>%
+  cbind(new.data.cnid)
+#predict.cnid.df$taxa  <- factor(droplevels(predict.cnid.df$taxa), levels=c("abalone", "mussel", "scallop", "oyster", "clam"))
+```
+
+### Cnidaria - Plot fertilization data with fitted models  
+
+```{r}
+Cnid.ph <- fert.data.3 %>%
+  filter(Phylum=="Cnidaria") #%>%
+  #mutate(Taxa = fct_relevel(Taxa, c("Sea star", "Sea urchin", "Sand dollar")))
+
+ggplotly(ggplot() + 
+  geom_jitter(data=Cnid.ph, aes(x=pH.experim, y=Perc.Fertilization, group=Species, col=Species, text=`Common name`), size=1.2, width=0.03) +
+  ggtitle("Echinodermata") + 
+  xlab("Experimental pH") + ylab("Fertilization %") +
+  #scale_color_manual(values=c("#e41a1c","#ff7f00","#4daf4a")) +
+  theme_minimal() + 
+  geom_line(data = predict.cnid.df, aes(x=ph, y=fit, col=species)) +
+    geom_ribbon(data = predict.cnid.df, aes(x=ph, ymin=lwr, ymax=upr, fill=species), linetype=2, alpha=0.1)) #+
+   #scale_fill_manual(values=c("#e41a1c","#ff7f00","#4daf4a")))
+
+# fert.data.3 %>%
+#   filter(Phylum=="Cnidaria") %>%
+# ggplot(mapping=aes(x=pH.experim, y=Perc.Fertilization, group=Species, text=`Common name`)) + 
+#   geom_jitter(size=1.2, width=0.03) +
+#   #facet_wrap(~Phylum, scales="free") + theme_minimal() +
+#   #geom_smooth(method="lm", se=F, aes(col=Taxa), formula=y ~ poly(x, 2, raw=TRUE)) +
+#   geom_line(aes(pH.experim, predict.cnid.df$fit, col=predict.cnid.df$species)) +
+#   ggtitle("Cnidaria") + 
+#   xlab("Experimental pH") + ylab("Fertilization %") +
+#   theme_minimal()
+# 
+# fert.data.3 %>%
+#   filter(Phylum=="Cnidaria") %>%
+# ggplot(mapping=aes(x=pH.experim, y=Perc.Fertilization, group=Taxa, text=`Common name`)) + 
+#   geom_jitter(size=1.2, width=0.03) +
+#   #facet_wrap(~Phylum, scales="free") + theme_minimal() +
+#   geom_smooth(method="lm", se=F, col="#4daf4a", size=0.6) +
+#   #geom_line(aes(pH.experim, predict.cnid.df$fit)) +
+#   ggtitle("Cnidaria") + 
+#   xlab("Experimental pH") + ylab("Fertilization %") +
+#   theme_minimal()
+```
+
+# Crustacea   
+
+```{r}
+fert<-subset(fert.data.3, Phylum=="Crustacean")$Perc.Fertilization
+ph<-subset(fert.data.3, Phylum=="Crustacean")$pH.experim
+taxa<-subset(fert.data.3, Phylum=="Crustacean")$Taxa
+#x <- c(6.6, 6.7, 6.8, 6.9, 7, 7.1, 7.2, 7.3, 7.4, 7.5, 7.6, 7.7, 7.8, 7.9, 8, 8.1, 8.2, 8.3, 8.4)
+
+summary(model0 <- lm(fert~ph)) #pH NOT sign. alone 
+summary(model1 <- lm(fert~taxa)) #taxa sign. alone 
+summary(model2 <- lm(fert~taxa+ph)) # pH.group not sign. after controlling for taxa intercept 
+anova(model1,model2) #pH does not improve the taxa only model 
+summary(model3 <- lm(fert~taxa*ph)) # pH.group not sign. after controlling for taxa intercept 
+anova(model1, model3) #pH interacion does not improve the taxa only model 
+summary(model4 <- lm(fert~taxa+ph+I(ph^2)))
+anova(model1, model4) #interesting - sign. 
+summary(model5 <- lm(fert~taxa+ph+I(ph^2)+I(ph^3))) # <--- final model 
+anova(model4, model5) #not a sign. improvement 
+AIC(model0, model1, model2, model3, model4, model5) 
+
+hist(model5$residuals) #kinda normal 
+plot(model5) #not much data, but residuals look okay 
+
+# lm.crust <- lm(fert~taxa+ph+I(ph^2)+I(ph^3), na.action = na.exclude) #over fit
+lm.crust <- lm(fert~taxa+ph+I(ph^2))
+```
+
+### Crustacean - Generate predictions from fitted model to plot 
+
+```{r}
+summary(lm.crust)
+predict.crust <- predict(lm.crust, interval = 'confidence') 
+predict.crust.df <- cbind(as.data.frame(predict.crust),
+        subset(fert.data.3, Phylum=="Crustacean")$pH.experim,
+        subset(fert.data.3, Phylum=="Crustacean")$Taxa) %>%
+  purrr::set_names(c("fit", "lwr", "upr", "ph", "taxa"))
+
+predict.crust.df$taxa  <- factor(predict.crust.df$taxa, levels=c("copepod", "crab", "amphipod"))
+```
+
+### Crustacean - Plot fertilization data with fitted models  
+
+```{r}
+fert.data.3 %>%
+  filter(Phylum=="Crustacean") %>%
+ggplot(mapping=aes(x=pH.experim, y=Perc.Fertilization, group=Taxa, text=`Common name`)) + 
+  geom_jitter(size=1.2, width=0.03) +
+  #facet_wrap(~Phylum, scales="free") + theme_minimal() +
+  #geom_smooth(method="lm", se=F, aes(col=Taxa), formula=y ~ poly(x, 2, raw=TRUE)) +
+  geom_line(aes(pH.experim, predict.crust.df$fit, col=predict.crust.df$taxa)) +
+  ggtitle("Crustacea") + 
+  xlab("Experimental pH") + ylab("Fertilization %") +
+  scale_color_manual(name="Taxa",
+      values=c(amphipod="#e41a1c", 
+               copepod="#4daf4a",
+               crab="#ff7f00")) +
+  theme_minimal()
+
+fert.data.3 %>%
+  filter(Phylum=="Crustacean") %>%
+ggplot(mapping=aes(x=pH.experim, y=Perc.Fertilization)) + 
+  geom_jitter(size=1.2, width=0.03) +
+  #facet_wrap(~Phylum, scales="free") + theme_minimal() +
+  geom_smooth(method="lm", se=F, col="#4daf4a", size=0.6) +
+  #geom_line(aes(pH.experim, predict.crust.df$fit, col=predict.crust.df$taxa)) +
+  ggtitle("Crustacea") + 
+  xlab("Experimental pH") + ylab("Fertilization %") +
+  theme_minimal()
+
+```
+
+
+## Plot all 4 taxa at once 
+
+### How many papers per taxa? 
+
+```{r}
+fert.data.3 %>%
+  group_by(Taxa) %>% 
+  summarise(count=n_distinct(Author))
+```
+
+## Call plots and save
+
+```{r}
+library(gridExtra)
+#library(grid)
+
+plot.mollusca <- fert.data.3 %>%
+  filter(Phylum=="Mollusca") %>%
+ggplot(mapping=aes(x=pH.experim, y=Perc.Fertilization, group=Taxa, text=`Common name`)) + 
+  geom_jitter(size=1.2, width=0.03) +
+  #facet_wrap(~Phylum, scales="free") + theme_minimal() +
+  #geom_smooth(method="lm", se=F, aes(col=Taxa), formula=y ~ poly(x, 2, raw=TRUE)) +
+  geom_line(aes(pH.experim, predict.mollusc.df$fit, col=predict.mollusc.df$taxa)) +
+  ggtitle("Mollusca") + 
+  xlab("Experimental pH") + ylab("Fertilization %") +
+  scale_color_manual(name="Taxa (n = # studies)",
+      values=c(abalone="#e41a1c",mussel="#4daf4a",scallop="#ff7f00",oyster="#984ea3",clam='#377eb8'),
+      labels = c("abalone (n=2)", "mussel (n=4)", "scallop (n=3)", "oyster (n=4)", "clam (n=5)")) +
+  theme_minimal()
+ggsave(filename = "fert.mollusca.pdf", width = 6, height = 4)
+
+plot.echin <- fert.data.3 %>%
+  filter(Phylum=="Echinodermata") %>%
+ggplot(mapping=aes(x=pH.experim, y=Perc.Fertilization, group=Taxa, text=`Common name`)) + 
+  geom_jitter(size=1.2, width=0.03) +
+  #facet_wrap(~Phylum, scales="free") + theme_minimal() +
+  #geom_smooth(method="lm", se=F, aes(col=Taxa), formula=y ~ poly(x, 2, raw=TRUE)) +
+  geom_line(aes(pH.experim, predict.echino.df$fit, col=predict.echino.df$taxa)) +
+  ggtitle("Echinodermata") + 
+  xlab("Experimental pH") + ylab("Fertilization %") +
+  scale_color_manual(name="Taxa (n = # studies)",
+      values=c(`Sand dollar`="#e41a1c", 
+               `Sea star`="#4daf4a",
+               `Sea urchin`="#ff7f00"),
+      labels = c("Sand dollar (n=1)", "Sea star (n=2)", "Sea urchin (n=13)")) + 
+  theme_minimal()
+ggsave(filename = "fert.echinodermata.pdf", width = 6, height = 4)
+
+plot.cnid <- fert.data.3 %>%
+  filter(Phylum=="Cnidaria") %>%
+ggplot(mapping=aes(x=pH.experim, y=Perc.Fertilization, group=Taxa, text=`Common name`)) + 
+  geom_jitter(size=1.2, width=0.03) +
+  #facet_wrap(~Phylum, scales="free") + theme_minimal() +
+  geom_smooth(method="lm", se=F, col="#4daf4a", size=0.6) +
+  #geom_line(aes(pH.experim, predict.cnid.df$fit)) +
+  ggtitle("Cnidaria (n=5 studies)") + 
+  xlab("Experimental pH") + ylab("Fertilization %") +
+  theme_minimal()
+ggsave(filename = "fert.cnidaria.pdf", width = 5, height = 4)
+
+plot.cnid.overfit <- fert.data.3 %>%
+  filter(Phylum=="Cnidaria") %>%
+ggplot(mapping=aes(x=pH.experim, y=Perc.Fertilization, group=Taxa, text=`Common name`)) + 
+  geom_jitter(size=1.2, width=0.03) +
+  #facet_wrap(~Phylum, scales="free") + theme_minimal() +
+  #geom_smooth(method="lm", se=F, aes(col=Taxa), formula=y ~ poly(x, 2, raw=TRUE)) +
+  geom_line(aes(pH.experim, predict.cnid.df$fit)) +
+  ggtitle("Cnidaria - overfit (n=5 studies)") + 
+  xlab("Experimental pH") + ylab("Fertilization %") +
+  theme_minimal()
+ggsave(filename = "fert.cnidaria.overfit.pdf", width = 5, height = 4)
+
+plot.crust <- fert.data.3 %>%
+  filter(Phylum=="Crustacean") %>%
+ggplot(mapping=aes(x=pH.experim, y=Perc.Fertilization)) + 
+  geom_jitter(size=1.2, width=0.03) +
+  #facet_wrap(~Phylum, scales="free") + theme_minimal() +
+  geom_smooth(method="lm", se=F, col="#4daf4a", size=0.6) +
+  #geom_line(aes(pH.experim, predict.crust.df$fit, col=predict.crust.df$taxa)) +
+  ggtitle("Crustacea (n=8 studies)") + 
+  xlab("Experimental pH") + ylab("Fertilization %") +
+  theme_minimal()
+ggsave(filename = "fert.crustacea.pdf", width = 5, height = 4)
+
+plot.crust.overfit <- fert.data.3 %>%
+  filter(Phylum=="Crustacean") %>%
+ggplot(mapping=aes(x=pH.experim, y=Perc.Fertilization, group=Taxa, text=`Common name`)) + 
+  geom_jitter(size=1.2, width=0.03) +
+  #facet_wrap(~Phylum, scales="free") + theme_minimal() +
+  #geom_smooth(method="lm", se=F, aes(col=Taxa), formula=y ~ poly(x, 2, raw=TRUE)) +
+  geom_line(aes(pH.experim, predict.crust.df$fit, col=predict.crust.df$taxa)) +
+  ggtitle("Crustacea - overfit?") + 
+  xlab("Experimental pH") + ylab("Fertilization %") +
+  scale_color_manual(name="Taxa (n = # studies)",
+      values=c(amphipod="#e41a1c", 
+               copepod="#4daf4a",
+               crab="#ff7f00"),
+      labels = c("amphipod (n=2)", "copepod (n=4)", "crab (n=2)")) +
+  theme_minimal()  
+ggsave(filename = "fert.crustacea.overfit.pdf", width = 6, height = 4)
+
+pdf("fert.all.pdf", height = 11, width = 15)
+grid.arrange(plot.mollusca, plot.echin,  plot.cnid, plot.crust, plot.cnid.overfit,  plot.crust.overfit, ncol=2)
+dev.off()
+```
+
+
+
+
+
+
+
+
+
+
+# Other analyses not included in paper 
 
 #### Test insemination minutes 
 
@@ -277,4 +821,5 @@ summary(aov(Perc.Fertilization ~ factor(Phylum)*n.females, fert.data.3))  # sign
 ```{r}
 summary(aov(Perc.Fertilization ~ factor(Phylum)*(pH.experim + Insemination.mins + egg.pre.exp.time.log + Sperm.per.mL.log + n.females), fert.data.3))  #  
 ```
+
 

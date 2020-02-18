@@ -1,5 +1,0 @@
-"0","pdf(file = ""fert.PCoA-nopH.pdf"", width = 9, height = 8)
-pl2 <- ordiplot(spe.pcoa2, type = ""none"",  xlim = c(-1,1.5))
-"
-"2","species scores not available
-"

@@ -1,0 +1,235 @@
+---
+title: "fertilization-analysis-REDO"
+author: "Laura H Spencer"
+date: "2/16/2020"
+output: html_document
+---
+
+### Load libraries 
+
+```{r setup, message=FALSE, warning=FALSE, results=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+list.of.packages <- c("gsheet", "tidyverse", "janitor", "plotly", "glmmTMB", "metafor", "broom.mixed") #add new libraries here 
+
+new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
+if(length(new.packages)) install.packages(new.packages)
+
+# Load all libraries 
+lapply(list.of.packages, FUN = function(X) {
+  do.call("require", list(X)) 
+})
+sessionInfo()
+```
+
+### Prepare data 
+
+NOTE: data is read directly from the GoogleSheet using a share link that was set to "anyone with a link can view"
+ 
+```{r}
+# Read in data from GoogleSheet 
+data.fert <- as_tibble(gsheet2tbl('https://docs.google.com/spreadsheets/d/111SuH548Et6HDckjbQjtYk-B8A5VfNkUYZgcUNRPxxY/edit?usp=sharing'))
+
+#replace NR (not reported) with NA and convert columns to factor / numeric where needed 
+data.fert <- data.fert %>% 
+  na_if("NR") %>%     
+  mutate_at(c('Phylum', 'Study', 'Taxonomic Group', 'Common name', 'Latin name', 'Error statistic'), as.factor) %>%
+  mutate_at(c('pH Experimental', 'pH Control', 'pCO2 Experimental', 'pCO2 Control', 'Ave. Fert. % @ pH', 'Error % @ pH', '# Trials @ pH', 'Insemination time'), as.numeric) %>%
+  clean_names()  # fill in spaces with underscores for column names 
+
+str(data.fert)   
+```
+
+### Explore data with plotly figures 
+
+```{r}
+ggplotly(data.fert %>%
+ggplot(mapping=aes(x=p_h_experimental, y=ave_fert_percent_p_h, group=taxonomic_group, col=taxonomic_group, text=`common_name`)) + 
+  geom_point(size=1.5, width=0.02) +
+  facet_wrap(~phylum, scale="free") +
+  geom_smooth(method="lm", se=TRUE, aes(fill=taxonomic_group)) +
+  ggtitle("Fertilization Rate ~ pH exposure by phylum, linear") +
+  theme_minimal())
+
+ggplotly(data.fert %>%
+ggplot(mapping=aes(x=p_h_experimental, y=ave_fert_percent_p_h, group=taxonomic_group, col=taxonomic_group, text=`common_name`)) + 
+  geom_point(size=1, width=0.02) +
+  facet_wrap(~phylum, scale="free") +
+  geom_smooth(method="lm", se=TRUE, formula=y ~ poly(x, 2, raw=TRUE), aes(fill=taxonomic_group)) +
+  ggtitle("Fertilization Rate ~ pH exposure by phylum, polynomial") +
+  theme_minimal())
+```
+
+### Convert all error values to separate SE & SD columns 
+
+#### 95% Confidence Interval 
+
+Upper 95% CI = Mean + 1.96*SE;  I recorded the difference between the upper 95%CI and the mean (Upper 95%CI - Mean). To convert I will use:  
+**SE = (Upper 95%CI - Mean) / 1.96** 
+
+**SD = ((Upper 95%CI - Mean) / 1.96) * sqrt(n)**
+
+#### Standard Deviation 
+
+SE= SD/sqrt(n); where n=sample size. To convert I will use that equation (since I recorded sample size, i.e. number of trials at each pH) 
+
+SD = SE*sqrt(n)
+
+#### Cases where I do not know the type of error statistic reported 
+ 
+I will use that statistic as-is (no conversion), thereby assuming it is SE.  
+
+```{r}
+data.fert <- data.fert %>% 
+  mutate(SE =  case_when(error_statistic == "SD" ~ error_percent_p_h/sqrt(number_trials_p_h), 
+         error_statistic == "95% CI" ~ error_percent_p_h/1.96,
+         is.na(error_statistic) ~ error_percent_p_h, 
+         error_statistic == "SE" ~ error_percent_p_h)) 
+
+data.fert <- data.fert %>% 
+  mutate(SD =  case_when(error_statistic == "SE" ~ error_percent_p_h*sqrt(number_trials_p_h), 
+         error_statistic == "95% CI" ~ (error_percent_p_h/1.96)*sqrt(number_trials_p_h),
+         is.na(error_statistic) ~ error_percent_p_h, 
+         error_statistic == "SD" ~ error_percent_p_h)) 
+
+data.fert %>% View()
+```
+
+### Calculate pH experimental - pH control 
+
+```{r}
+data.fert <- data.fert %>% 
+  mutate(pH_delta = p_h_control-p_h_experimental)
+```
+
+### Convert % fertilization data to proportion fertilized, and replace any values >1 (aka 100% fertilized) with 1 
+
+```{r}
+data.fert <- data.fert %>% 
+  mutate(ave_fert_proport = case_when(ave_fert_percent_p_h <= 100 ~ ave_fert_percent_p_h/100,
+                                      ave_fert_percent_p_h > 100 ~ 1))
+```
+
+### Transform proportion fertilized data to remove 1's 
+
+Transormation equation source: [https://cran.r-project.org/web/packages/betareg/vignettes/betareg.pdf](https://cran.r-project.org/web/packages/betareg/vignettes/betareg.pdf), " ... if y also assumes the extremes 0 and 1, a useful transformation in practice is (y · (n − 1) + 0.5)/n where n is the sample size (Smithson and Verkuilen 2006)."
+
+#### HOWEVER
+issue is that a few studies only had 1 trial per pH, so the transformation results in NA values 
+
+```{r}
+ # data.fert$ave_fert_proport.t <- data.fert$ave_fert_proport*((data.fert$number_trials_p_h-1) + 0.5) / data.fert$number_trials_p_h
+```
+
+#### Instead, I simply subtracted 0.001 from all data (but not sure if I will use that transformed data)
+
+```{r}
+data.fert$ave_fert_proport.t <- data.fert$ave_fert_proport - 0.001
+```
+
+### Inspect data 
+
+```{r}
+data.fert$ave_fert_proport.t %>% hist()
+
+ggplot(data.fert, aes(group=phylum, col=phylum)) + geom_density(aes(ave_fert_proport.t))
+
+```
+
+### Calculate weights for models 
+
+#### NOTE: not working due to missing data. 
+
+```{r}
+weights <- metafor::escalc(measure='MN',
+                mi=data.fert$ave_fert_percent_p_h,
+                sdi = data.fert$SD,
+                ni=data.fert$number_trials_p_h, options(na.action="na.pass"))  
+```
+
+### Generate binomial models  
+
+ - Include study as random effect for all models   
+ - Include varying combinations of phylum & experimental pH  
+ - Decided NOT to include taxa, since so few studies per group  
+
+```{r}
+test1 <- glmmTMB(ave_fert_proport ~ p_h_experimental + taxonomic_group/phylum + (1|study), data=data.fert, binomial(link = "logit"), na.action=na.exclude)
+
+test2 <- glmmTMB(ave_fert_proport ~ p_h_experimental*phylum + (1|study), data=data.fert, binomial(link = "logit"), na.action=na.exclude)
+
+test3 <- glmmTMB(ave_fert_proport ~ p_h_experimental:phylum + (1|study), data=data.fert, binomial(link = "logit"), na.action=na.exclude)
+
+test4 <- glmmTMB(ave_fert_proport ~ p_h_experimental + phylum + (1|study), data=data.fert, binomial(link = "logit"), na.action=na.exclude)
+
+test5 <- glmmTMB(ave_fert_proport ~ p_h_experimental + (1|study), data=data.fert, binomial(link = "logit"), na.action=na.exclude)
+
+test6 <- glmmTMB(ave_fert_proport ~ (1|study), data=data.fert, binomial(link = "logit"), na.action=na.exclude)
+
+test7 <- glmmTMB(ave_fert_proport ~ phylum + (1|study), data=data.fert, binomial(link = "logit"), na.action=na.exclude)
+
+test8 <- glmmTMB(ave_fert_proport ~ p_h_experimental, data=data.fert, binomial(link = "logit"), na.action=na.exclude)
+```
+
+#### Determine best fit model 
+
+```{r}
+AIC(test1, test2, test3, test4, test5, test6, test7, test8) #test2 smallest AIC.  
+
+#test differene between models test3 and test4. Stick with test5 model. 
+anova(test5, test4) 
+anova(test5, test3) 
+anova(test5, test2) 
+anova(test8, test5) 
+
+# Examine model test5
+car::Anova(test5) #phylum not quite significant factor, pH is a sign. factor. 
+summary(test5)
+
+# Generate estimates & confidence intervals (log likelihood)
+confint(test5)
+
+# Instpect residuals ~ fitted values 
+aa5 <- augment(test5, data=data.fert)
+ggplotly(ggplot(aa5, aes(x=.fitted,y=.resid)) + 
+    geom_point() + 
+  geom_smooth())
+```
+
+### Generate model predictions and plot against real data 
+
+```{r}
+ph.min.max <- data.fert %>% 
+  select(phylum, p_h_experimental) %>% 
+  group_by(phylum) %>% 
+  summarize(min=min(p_h_experimental, na.rm=TRUE), max=max(p_h_experimental, na.rm=TRUE))
+  
+phylum.list <- list()
+for (i in 1:nrow(ph.min.max)) {
+  phylum.list[[i]] <- data.frame(ph=c(seq(from=as.numeric(ph.min.max[i,"min"]), 
+                            to=as.numeric(ph.min.max[i,"max"]), 
+                            by=0.01)),
+                   phylum=rep(c(ph.min.max[i,"phylum"])))
+}
+new.data <- bind_rows(phylum.list) %>% purrr::set_names(c("p_h_experimental", "phylum"))
+new.data$study <- NA 
+
+predict.test.df <- predict(test5, newdata = new.data, se.fit = TRUE, type="response")
+predict.test.df.df <- predict.test.df %>%
+  as.data.frame() %>%
+  cbind(new.data)
+
+#scales::show_col(c("#e41a1c","#4daf4a","#ff7f00","#984ea3",'#377eb8'))
+
+# Data with beta regression model fit 
+ggplotly(ggplot() + 
+  geom_jitter(data=data.fert, aes(x=p_h_experimental, y=ave_fert_proport, group=phylum, col=phylum), size=1.2, width=0.03) +
+  #facet_wrap(~phylum, scales="free") + theme_minimal() +
+  ggtitle("% fertilization ~ pH with binomial-regression model predictions") + 
+  xlab("Experimental pH") + ylab("Fertilization %") +
+  scale_color_manual(name=NULL, values=c("#e41a1c","#ff7f00","#4daf4a",'#377eb8')) +
+  theme_minimal() + 
+  coord_cartesian(ylim = c(0, 1), xlim =c(6,8.5)) +
+  geom_line(data = predict.test.df.df, aes(x=p_h_experimental, y=fit), col="gray50") + #, col=phylum
+  geom_ribbon(data = predict.test.df.df, aes(x=p_h_experimental, ymin=fit-se.fit, ymax=fit+se.fit), linetype=2, alpha=0.1, col="gray50")) #, fill=phylum
+```
