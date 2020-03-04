@@ -38,6 +38,7 @@ data.fert <- data.fert %>%
   clean_names()  # fill in spaces with underscores for column names 
 
 str(data.fert)   
+data.fert %>% select(study, ave_fert_percent_p_h, error_percent_p_h, error_statistic, number_trials_p_h) %>% View()
 ```
 
 ### Explore data with figures 
@@ -138,6 +139,18 @@ data.fert$ave_fert_proport.t %>% hist()
 
 ggplot(data.fert, aes(group=phylum, col=phylum)) + geom_density(aes(ave_fert_proport.t))
 
+# How many studies per ~phylum? 
+data.fert %>%
+  select(phylum, study) %>%
+  distinct(phylum, study) %>%
+  group_by(phylum) %>% count()
+
+
+# How many studies per taxonomic group? 
+data.fert %>%
+  select(phylum, study, taxonomic_group) %>%
+  distinct(phylum, study, taxonomic_group) %>%
+  group_by(taxonomic_group) %>% count()
 ```
 
 ### Calculate weights for models 
@@ -226,7 +239,11 @@ predict.test.df.df <- predict.test.df %>%
   cbind(new.data)
 
 #scales::show_col(c("#e41a1c","#4daf4a","#ff7f00","#984ea3",'#377eb8'))
+```
 
+### Figure 
+
+```{r}
 # Data with beta regression model fit 
 #ggplotly(
 ggplot() + 
@@ -239,5 +256,9 @@ ggplot() +
   coord_cartesian(ylim = c(0, 1), xlim =c(6,8.5)) +
   geom_line(data = predict.test.df.df, aes(x=p_h_experimental, y=fit), col="gray50") + #, col=phylum
   geom_ribbon(data = predict.test.df.df, aes(x=p_h_experimental, ymin=fit-se.fit, ymax=fit+se.fit), linetype=2, alpha=0.1, col="gray50") #, fill=phylum
-#) 
+#)
 ```
+
+### Figure caption: 
+
+Fertilization success (%) by experimental pH across marine taxa examined in this review. Meta-analysis was performed using a binomial regression model, and indicates that fertilization success decreases with pH across Cnidaria (4 studies), Crustacea (5 studies), Echinodermata (12 studies), and Mollusca (18 studies). Each point reflects the average % fertilization reported by one study at an experimental pH. 
