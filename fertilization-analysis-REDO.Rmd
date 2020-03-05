@@ -10,7 +10,7 @@ output: html_document
 ```{r setup, message=FALSE, warning=FALSE, results=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 
-list.of.packages <- c("gsheet", "tidyverse", "janitor", "plotly", "glmmTMB", "metafor", "broom.mixed") #add new libraries here 
+list.of.packages <- c("gsheet", "tidyverse", "janitor", "plotly", "glmmTMB", "metafor", "broom.mixed", "car") #add new libraries here 
 
 new.packages <- list.of.packages[!(list.of.packages %in% installed.packages()[,"Package"])]
 if(length(new.packages)) install.packages(new.packages)
@@ -262,3 +262,94 @@ ggplot() +
 ### Figure caption: 
 
 Fertilization success (%) by experimental pH across marine taxa examined in this review. Meta-analysis was performed using a binomial regression model, and indicates that fertilization success decreases with pH across Cnidaria (4 studies), Crustacea (5 studies), Echinodermata (12 studies), and Mollusca (18 studies). Each point reflects the average % fertilization reported by one study at an experimental pH. 
+
+## Phylum specific figures 
+
+### Cnidaria 
+
+```{r}
+model.cnidaria <- glmmTMB(ave_fert_proport ~ p_h_experimental + (1|study), data=subset(data.fert, phylum=="Cnidaria"), binomial(link = "logit"), na.action=na.exclude)
+Anova(model.cnidaria)
+summary(model.cnidaria) 
+
+predict.cnidaria <- predict(model.cnidaria, newdata = subset(new.data, phylum=="Cnidaria"), se.fit = TRUE, type="response")
+predict.cnidaria.df <- predict.cnidaria %>%
+  as.data.frame() %>%
+  cbind(subset(new.data, phylum=="Cnidaria"))
+
+ggplot() + 
+  geom_jitter(data=subset(data.fert, phylum=="Cnidaria"), aes(x=p_h_experimental, y=ave_fert_proport), size=1.2, width=0.03, color="#e41a1c") +
+  ggtitle("Cnidaria") + 
+  xlab("Experimental pH") + ylab("Fertilization %") +
+  theme_minimal() + 
+  coord_cartesian(ylim = c(0, 1), xlim =c(6,8.5)) +
+  geom_line(data = predict.cnidaria.df, aes(x=p_h_experimental, y=fit), col="#e41a1c") + 
+  geom_ribbon(data = predict.cnidaria.df, aes(x=p_h_experimental, ymin=fit-se.fit, ymax=fit+se.fit), linetype=2, alpha=0.1, col="#e41a1c") 
+```
+
+### Crustacea  
+
+```{r}
+model.crustacea <- glmmTMB(ave_fert_proport ~ p_h_experimental + (1|study), data=subset(data.fert, phylum=="Crustacea"), binomial(link = "logit"), na.action=na.exclude)
+Anova(model.crustacea)
+summary(model.crustacea) 
+
+predict.crustacea <- predict(model.crustacea, newdata = subset(new.data, phylum=="Crustacea"), se.fit = TRUE, type="response")
+predict.crustacea.df <- predict.crustacea %>%
+  as.data.frame() %>%
+  cbind(subset(new.data, phylum=="Crustacea"))
+
+ggplot() + 
+  geom_jitter(data=subset(data.fert, phylum=="Crustacea"), aes(x=p_h_experimental, y=ave_fert_proport), size=1.2, width=0.03, col="#ff7f00") +
+  ggtitle("Crustacea") + 
+  xlab("Experimental pH") + ylab("Fertilization %") +
+  theme_minimal() + 
+  coord_cartesian(ylim = c(0, 1), xlim =c(6,8.5)) +
+  geom_line(data = predict.crustacea.df, aes(x=p_h_experimental, y=fit), col="#ff7f00") +
+  geom_ribbon(data = predict.crustacea.df, aes(x=p_h_experimental, ymin=fit-se.fit, ymax=fit+se.fit), linetype=2, alpha=0.1, col="#ff7f00") 
+```
+
+### Echinodermata
+
+```{r}
+model.echinodermata <- glmmTMB(ave_fert_proport ~ p_h_experimental + (1|study), data=subset(data.fert, phylum=="Echinodermata"), binomial(link = "logit"), na.action=na.exclude)
+Anova(model.echinodermata)
+summary(model.echinodermata) 
+
+predict.echinodermata <- predict(model.echinodermata, newdata = subset(new.data, phylum=="Echinodermata"), se.fit = TRUE, type="response")
+predict.echinodermata.df <- predict.echinodermata %>%
+  as.data.frame() %>%
+  cbind(subset(new.data, phylum=="Echinodermata"))
+
+ggplot() + 
+  geom_jitter(data=subset(data.fert, phylum=="Echinodermata"), aes(x=p_h_experimental, y=ave_fert_proport), size=1.2, width=0.03, col="#4daf4a") +
+  ggtitle("Echinodermata") + 
+  xlab("Experimental pH") + ylab("Fertilization %") +
+  theme_minimal() + 
+  coord_cartesian(ylim = c(0, 1), xlim =c(6,8.5)) +
+  geom_line(data = predict.echinodermata.df, aes(x=p_h_experimental, y=fit), col="#4daf4a") +
+  geom_ribbon(data = predict.echinodermata.df, aes(x=p_h_experimental, ymin=fit-se.fit, ymax=fit+se.fit), linetype=2, alpha=0.1, col="#4daf4a") 
+```
+
+### Mollusca  
+
+```{r}
+model.mollusca <- glmmTMB(ave_fert_proport ~ p_h_experimental + (1|study), data=subset(data.fert, phylum=="Mollusca"), binomial(link = "logit"), na.action=na.exclude)
+Anova(model.mollusca)
+summary(model.mollusca) 
+
+predict.mollusca <- predict(model.mollusca, newdata = subset(new.data, phylum=="Mollusca"), se.fit = TRUE, type="response")
+predict.mollusca.df <- predict.mollusca %>%
+  as.data.frame() %>%
+  cbind(subset(new.data, phylum=="Mollusca"))
+
+ggplot() + 
+  geom_jitter(data=subset(data.fert, phylum=="Mollusca"), aes(x=p_h_experimental, y=ave_fert_proport), size=1.2, width=0.03, col="#377eb8") +
+  ggtitle("Mollusca") + 
+  xlab("Experimental pH") + ylab("Fertilization %") +
+  theme_minimal() + 
+  coord_cartesian(ylim = c(0, 1), xlim =c(6,8.5)) +
+  geom_line(data = predict.mollusca.df, aes(x=p_h_experimental, y=fit), col="#377eb8") + 
+  geom_ribbon(data = predict.mollusca.df, aes(x=p_h_experimental, ymin=fit-se.fit, ymax=fit+se.fit), linetype=2, alpha=0.1, col="#377eb8") 
+```
+
