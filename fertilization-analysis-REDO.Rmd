@@ -37,14 +37,13 @@ data.fert <- data.fert %>%
   mutate_at(c('pH Experimental', 'pH Control', 'pCO2 Experimental', 'pCO2 Control', 'Ave. Fert. % @ pH', 'Error % @ pH', '# Trials @ pH', 'Insemination time'), as.numeric) %>%
   clean_names()  # fill in spaces with underscores for column names 
 
-str(data.fert)   
-data.fert %>% select(study, ave_fert_percent_p_h, error_percent_p_h, error_statistic, number_trials_p_h) %>% View()
+#data.fert %>% select(study, ave_fert_percent_p_h, error_percent_p_h, error_statistic, number_trials_p_h) %>% View()
 ```
 
 ### Explore data with figures 
 
 ```{r}
-#ggplotly(
+ggplotly(
 data.fert %>%
 ggplot(mapping=aes(x=p_h_experimental, y=ave_fert_percent_p_h, group=taxonomic_group, col=taxonomic_group, text=`common_name`)) + 
   geom_point(size=1.5, width=0.02) +
@@ -52,7 +51,7 @@ ggplot(mapping=aes(x=p_h_experimental, y=ave_fert_percent_p_h, group=taxonomic_g
   geom_smooth(method="lm", se=TRUE, aes(fill=taxonomic_group)) +
   ggtitle("Fertilization Rate ~ pH exposure by phylum, linear") +
   theme_minimal() 
-#)
+)
 
 #ggplotly(
 data.fert %>%
@@ -96,8 +95,6 @@ data.fert <- data.fert %>%
          error_statistic == "95% CI" ~ (error_percent_p_h/1.96)*sqrt(number_trials_p_h),
          is.na(error_statistic) ~ error_percent_p_h, 
          error_statistic == "SD" ~ error_percent_p_h)) 
-
-data.fert %>% View()
 ```
 
 ### Calculate pH experimental - pH control 
@@ -145,7 +142,6 @@ data.fert %>%
   distinct(phylum, study) %>%
   group_by(phylum) %>% count()
 
-
 # How many studies per taxonomic group? 
 data.fert %>%
   select(phylum, study, taxonomic_group) %>%
@@ -162,6 +158,7 @@ weights <- metafor::escalc(measure='MN',
                 mi=data.fert$ave_fert_percent_p_h,
                 sdi = data.fert$SD,
                 ni=data.fert$number_trials_p_h, options(na.action="na.pass"))  
+data.fert$w <-weights$vi
 ```
 
 ### Generate binomial models  
@@ -171,21 +168,21 @@ weights <- metafor::escalc(measure='MN',
  - Decided NOT to include taxa, since so few studies per group  
 
 ```{r}
-test1 <- glmmTMB(ave_fert_proport ~ p_h_experimental + taxonomic_group/phylum + (1|study), data=data.fert, binomial(link = "logit"), na.action=na.exclude)
+test1 <- glmmTMB(ave_fert_proport ~ p_h_experimental + taxonomic_group/phylum + (1|study), data=drop_na(data.fert, w), binomial(link = "logit"), na.action=na.exclude, weights = w)
 
-test2 <- glmmTMB(ave_fert_proport ~ p_h_experimental*phylum + (1|study), data=data.fert, binomial(link = "logit"), na.action=na.exclude)
+test2 <- glmmTMB(ave_fert_proport ~ p_h_experimental*phylum + (1|study), data=drop_na(data.fert, w), binomial(link = "logit"), na.action=na.exclude, weights = w)
 
-test3 <- glmmTMB(ave_fert_proport ~ p_h_experimental:phylum + (1|study), data=data.fert, binomial(link = "logit"), na.action=na.exclude)
+test3 <- glmmTMB(ave_fert_proport ~ p_h_experimental:phylum + (1|study), data=drop_na(data.fert, w), binomial(link = "logit"), na.action=na.exclude, weights = w)
 
-test4 <- glmmTMB(ave_fert_proport ~ p_h_experimental + phylum + (1|study), data=data.fert, binomial(link = "logit"), na.action=na.exclude)
+test4 <- glmmTMB(ave_fert_proport ~ p_h_experimental + phylum + (1|study), data=drop_na(data.fert, w), binomial(link = "logit"), na.action=na.exclude, weights = w)
 
-test5 <- glmmTMB(ave_fert_proport ~ p_h_experimental + (1|study), data=data.fert, binomial(link = "logit"), na.action=na.exclude)
+test5 <- glmmTMB(ave_fert_proport ~ p_h_experimental + (1|study), data=drop_na(data.fert, w), binomial(link = "logit"), na.action=na.exclude, weights = w)
 
-test6 <- glmmTMB(ave_fert_proport ~ (1|study), data=data.fert, binomial(link = "logit"), na.action=na.exclude)
+test6 <- glmmTMB(ave_fert_proport ~ 1 + (1|study), data=drop_na(data.fert, w), binomial(link = "logit"), na.action=na.exclude, weights = w)
 
-test7 <- glmmTMB(ave_fert_proport ~ phylum + (1|study), data=data.fert, binomial(link = "logit"), na.action=na.exclude)
+test7 <- glmmTMB(ave_fert_proport ~ phylum + (1|study), data=drop_na(data.fert, w), binomial(link = "logit"), na.action=na.exclude, weights = w)
 
-test8 <- glmmTMB(ave_fert_proport ~ p_h_experimental, data=data.fert, binomial(link = "logit"), na.action=na.exclude)
+test8 <- glmmTMB(ave_fert_proport ~ p_h_experimental, data=drop_na(data.fert, w), binomial(link = "logit"), na.action=na.exclude, weights = w)
 ```
 
 #### Determine best fit model 
@@ -193,21 +190,18 @@ test8 <- glmmTMB(ave_fert_proport ~ p_h_experimental, data=data.fert, binomial(l
 ```{r}
 AIC(test1, test2, test3, test4, test5, test6, test7, test8) #test2 smallest AIC.  
 
-#test differene between models test3 and test4. Stick with test5 model. 
-anova(test5, test4) 
-anova(test5, test3) 
-anova(test5, test2) 
-anova(test8, test5) 
+#test differene between models 
+anova(test3, test2) 
 
-# Examine model test5
-car::Anova(test5) #phylum not quite significant factor, pH is a sign. factor. 
-summary(test5)
+# Examine model test2
+car::Anova(test2) #phylum, pH, & phylum:pH sign. factors 
+summary(test2)
 
 # Generate estimates & confidence intervals (log likelihood)
-confint(test5)
+confint(test2)
 
 # Instpect residuals ~ fitted values 
-aa5 <- augment(test5, data=data.fert)
+aa5 <- augment(test2, data=drop_na(data.fert, w))
 #ggplotly(
 ggplot(aa5, aes(x=.fitted,y=.resid)) + 
     geom_point() + 
@@ -218,7 +212,7 @@ ggplot(aa5, aes(x=.fitted,y=.resid)) +
 ### Generate model predictions and plot against real data 
 
 ```{r}
-ph.min.max <- data.fert %>% 
+ph.min.max <- drop_na(data.fert, w) %>% 
   select(phylum, p_h_experimental) %>% 
   group_by(phylum) %>% 
   summarize(min=min(p_h_experimental, na.rm=TRUE), max=max(p_h_experimental, na.rm=TRUE))
@@ -232,8 +226,9 @@ for (i in 1:nrow(ph.min.max)) {
 }
 new.data <- bind_rows(phylum.list) %>% purrr::set_names(c("p_h_experimental", "phylum"))
 new.data$study <- NA 
+new.data$w <- NA 
 
-predict.test.df <- predict(test5, newdata = new.data, se.fit = TRUE, type="response")
+predict.test.df <- predict(test2, newdata = new.data, se.fit = TRUE, type="response")
 predict.test.df.df <- predict.test.df %>%
   as.data.frame() %>%
   cbind(new.data)
@@ -245,30 +240,32 @@ predict.test.df.df <- predict.test.df %>%
 
 ```{r}
 # Data with beta regression model fit 
-#ggplotly(
+ggplotly(
 ggplot() + 
-  geom_jitter(data=data.fert, aes(x=p_h_experimental, y=ave_fert_proport, group=phylum, col=phylum), size=1.2, width=0.03) +
-  #facet_wrap(~phylum, scales="free") + theme_minimal() +
+  geom_jitter(data=drop_na(data.fert, w), aes(x=p_h_experimental, y=ave_fert_proport, group=phylum, col=phylum), size=1.2, width=0.03) +
+  facet_wrap(~phylum, scales="free") + theme_minimal() +
   ggtitle("% fertilization ~ pH with binomial-regression model predictions") + 
   xlab("Experimental pH") + ylab("Fertilization %") +
   scale_color_manual(name=NULL, values=c("#e41a1c","#ff7f00","#4daf4a",'#377eb8')) +
   theme_minimal() + 
   coord_cartesian(ylim = c(0, 1), xlim =c(6,8.5)) +
   geom_line(data = predict.test.df.df, aes(x=p_h_experimental, y=fit), col="gray50") + #, col=phylum
-  geom_ribbon(data = predict.test.df.df, aes(x=p_h_experimental, ymin=fit-se.fit, ymax=fit+se.fit), linetype=2, alpha=0.1, col="gray50") #, fill=phylum
-#)
+  geom_ribbon(data = predict.test.df.df, aes(x=p_h_experimental, ymin=fit-se.fit, ymax=fit+se.fit, fill=phylum), linetype=2, alpha=0.1, col="gray50"))
 ```
 
 ### Figure caption: 
 
 Fertilization success (%) by experimental pH across marine taxa examined in this review. Meta-analysis was performed using a binomial regression model, and indicates that fertilization success decreases with pH across Cnidaria (4 studies), Crustacea (5 studies), Echinodermata (12 studies), and Mollusca (18 studies). Each point reflects the average % fertilization reported by one study at an experimental pH. 
 
-## Phylum specific figures 
+## Run GLMs on each phylum  
+
+1) Are slopes significantly different from zero? 
+2) If so, what is the equation? 
 
 ### Cnidaria 
 
 ```{r}
-model.cnidaria <- glmmTMB(ave_fert_proport ~ p_h_experimental + (1|study), data=subset(data.fert, phylum=="Cnidaria"), binomial(link = "logit"), na.action=na.exclude)
+model.cnidaria <- glmmTMB(ave_fert_proport ~ p_h_experimental + (1|study), data=data.fert %>% drop_na(w) %>% filter(phylum=="Cnidaria"), binomial(link = "logit"), na.action=na.exclude, weights = w)
 Anova(model.cnidaria)
 summary(model.cnidaria) 
 
@@ -278,7 +275,7 @@ predict.cnidaria.df <- predict.cnidaria %>%
   cbind(subset(new.data, phylum=="Cnidaria"))
 
 ggplot() + 
-  geom_jitter(data=subset(data.fert, phylum=="Cnidaria"), aes(x=p_h_experimental, y=ave_fert_proport), size=1.2, width=0.03, color="#e41a1c") +
+  geom_jitter(data=data.fert %>% drop_na(w) %>% filter(phylum=="Cnidaria"), aes(x=p_h_experimental, y=ave_fert_proport), size=1.2, width=0.03, color="#e41a1c") +
   ggtitle("Cnidaria") + 
   xlab("Experimental pH") + ylab("Fertilization %") +
   theme_minimal() + 
@@ -290,7 +287,7 @@ ggplot() +
 ### Crustacea  
 
 ```{r}
-model.crustacea <- glmmTMB(ave_fert_proport ~ p_h_experimental + (1|study), data=subset(data.fert, phylum=="Crustacea"), binomial(link = "logit"), na.action=na.exclude)
+model.crustacea <- glmmTMB(ave_fert_proport ~ p_h_experimental + (1|study), data=data.fert %>% drop_na(w) %>% filter(phylum=="Crustacea"), binomial(link = "logit"), na.action=na.exclude, weights=w)
 Anova(model.crustacea)
 summary(model.crustacea) 
 
@@ -300,7 +297,7 @@ predict.crustacea.df <- predict.crustacea %>%
   cbind(subset(new.data, phylum=="Crustacea"))
 
 ggplot() + 
-  geom_jitter(data=subset(data.fert, phylum=="Crustacea"), aes(x=p_h_experimental, y=ave_fert_proport), size=1.2, width=0.03, col="#ff7f00") +
+  geom_jitter(data=data.fert %>% drop_na(w) %>% filter(phylum=="Crustacea"), aes(x=p_h_experimental, y=ave_fert_proport), size=1.2, width=0.03, col="#ff7f00") +
   ggtitle("Crustacea") + 
   xlab("Experimental pH") + ylab("Fertilization %") +
   theme_minimal() + 
@@ -312,7 +309,7 @@ ggplot() +
 ### Echinodermata
 
 ```{r}
-model.echinodermata <- glmmTMB(ave_fert_proport ~ p_h_experimental + (1|study), data=subset(data.fert, phylum=="Echinodermata"), binomial(link = "logit"), na.action=na.exclude)
+model.echinodermata <- glmmTMB(ave_fert_proport ~ p_h_experimental + (1|study), data=data.fert %>% drop_na(w) %>% filter(phylum=="Echinodermata"), binomial(link = "logit"), na.action=na.exclude, weights = w)
 Anova(model.echinodermata)
 summary(model.echinodermata) 
 
@@ -322,7 +319,7 @@ predict.echinodermata.df <- predict.echinodermata %>%
   cbind(subset(new.data, phylum=="Echinodermata"))
 
 ggplot() + 
-  geom_jitter(data=subset(data.fert, phylum=="Echinodermata"), aes(x=p_h_experimental, y=ave_fert_proport), size=1.2, width=0.03, col="#4daf4a") +
+  geom_jitter(data=data.fert %>% drop_na(w) %>% filter(phylum=="Echinodermata"), aes(x=p_h_experimental, y=ave_fert_proport), size=1.2, width=0.03, col="#4daf4a") +
   ggtitle("Echinodermata") + 
   xlab("Experimental pH") + ylab("Fertilization %") +
   theme_minimal() + 
@@ -334,7 +331,7 @@ ggplot() +
 ### Mollusca  
 
 ```{r}
-model.mollusca <- glmmTMB(ave_fert_proport ~ p_h_experimental + (1|study), data=subset(data.fert, phylum=="Mollusca"), binomial(link = "logit"), na.action=na.exclude)
+model.mollusca <- glmmTMB(ave_fert_proport ~ p_h_experimental + (1|study), data=data.fert %>% drop_na(w) %>% filter(phylum=="Mollusca"), binomial(link = "logit"), na.action=na.exclude, weights=w)
 Anova(model.mollusca)
 summary(model.mollusca) 
 
@@ -344,7 +341,7 @@ predict.mollusca.df <- predict.mollusca %>%
   cbind(subset(new.data, phylum=="Mollusca"))
 
 ggplot() + 
-  geom_jitter(data=subset(data.fert, phylum=="Mollusca"), aes(x=p_h_experimental, y=ave_fert_proport), size=1.2, width=0.03, col="#377eb8") +
+  geom_jitter(data=data.fert %>% drop_na(w) %>% filter(phylum=="Mollusca"), aes(x=p_h_experimental, y=ave_fert_proport), size=1.2, width=0.03, col="#377eb8") +
   ggtitle("Mollusca") + 
   xlab("Experimental pH") + ylab("Fertilization %") +
   theme_minimal() + 
