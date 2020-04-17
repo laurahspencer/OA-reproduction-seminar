@@ -240,7 +240,7 @@ predict.test.df.df <- predict.test.df %>%
 
 ```{r}
 # Data with beta regression model fit 
-ggplotly(
+#ggplotly(
 ggplot() + 
   geom_jitter(data=drop_na(data.fert, w), aes(x=p_h_experimental, y=ave_fert_proport, group=phylum, col=phylum), size=1.2, width=0.03) +
   facet_wrap(~phylum, scales="free") + theme_minimal() +
@@ -250,7 +250,7 @@ ggplot() +
   theme_minimal() + 
   coord_cartesian(ylim = c(0, 1), xlim =c(6,8.5)) +
   geom_line(data = predict.test.df.df, aes(x=p_h_experimental, y=fit), col="gray50") + #, col=phylum
-  geom_ribbon(data = predict.test.df.df, aes(x=p_h_experimental, ymin=fit-se.fit, ymax=fit+se.fit, fill=phylum), linetype=2, alpha=0.1, col="gray50"))
+  geom_ribbon(data = predict.test.df.df, aes(x=p_h_experimental, ymin=fit-se.fit, ymax=fit+se.fit, fill=phylum), linetype=2, alpha=0.1, col="gray50") #)
 ```
 
 ### Figure caption: 
