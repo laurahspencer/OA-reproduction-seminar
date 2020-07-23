@@ -273,19 +273,19 @@ Fertilization success (%) by experimental pH across marine taxa examined in this
 # Examine pH-experimental significance as predictor using X-squared test  
 Anova(best)
 
-ggplotly(
+#ggplotly(
 ggplot() + 
   geom_jitter(data=drop_na(data.fert, w), aes(x=p_h_experimental, y=ave_fert_proport, group=phylum, col=phylum, label=study), size=1.2, width=0.03) + #, col="gray40"
   #facet_wrap(~phylum, scales="free") + 
   theme_minimal() +
   ggtitle("Fertilization success ~ pH with binomial-regression model predictions (all phyla)") + 
   xlab("Experimental pH") + ylab("Proportion fertilization success") +
-  scale_color_manual(name=NULL, values=c("#e41a1c","#ff7f00","#4daf4a",'#377eb8')) + ##e41a1c #377eb8 #4daf4a #984ea3
+  scale_color_manual(name=NULL, values=c("#ca0020","#f4a582","#92c5de",'#0571b0')) + 
   theme_minimal() + 
   coord_cartesian(ylim = c(0, 1), xlim =c(6,8.5)) +
   geom_line(data = predict.test.df.df, aes(x=p_h_experimental, y=fit), col="gray50") + #, col=phylum
   geom_ribbon(data = predict.test.df.df, aes(x=p_h_experimental, ymin=fit-se.fit, ymax=fit+se.fit), linetype=2, alpha=0.1, col="gray50") + theme(legend.position = "top") + guides(colour = guide_legend(override.aes = list(size=4))) +
-  annotate(geom="text", x=6.4, y=0.9, size=5, colour="gray50", label=paste("χ2 p-value =", round(Anova(best)[,"Pr(>Chisq)"], digits =4), sep=" "))) #add fill=phylum in geom_ribbon aes if color desired 
+  annotate(geom="text", x=6.4, y=0.9, size=5, colour="gray50", label=paste("χ2 p-value =", round(Anova(best)[,"Pr(>Chisq)"], digits =4), sep=" ")) #) #add fill=phylum in geom_ribbon aes if color desired 
 ```
 
 # Examine color scheme (`show_col` is from scales library)
@@ -350,14 +350,14 @@ predict.cnidaria.df <- predict.cnidaria %>%
 
 plot.cnidaria <- ggplot() + 
   geom_jitter(data=data.fert %>% drop_na(w) %>% 
-                filter(phylum=="Cnidaria"), aes(x=p_h_experimental, y=ave_fert_proport), size=1.2, width=0.03, col="#e41a1c") +
+                filter(phylum=="Cnidaria"), aes(x=p_h_experimental, y=ave_fert_proport), size=1.2, width=0.03, col="#ca0020") +
   ggtitle("Cnidaria") + 
   xlab(NULL) + ylab("Proportion fertilization success") +
   theme_minimal() +
   theme(plot.title = element_text(hjust = 0.5, size=13, colour="gray30")) +
   coord_cartesian(ylim = c(0, 1), xlim =c(6,8.5)) +
-  geom_line(data = predict.cnidaria.df, aes(x=p_h_experimental, y=fit), col="#e41a1c") + 
-  geom_ribbon(data = predict.cnidaria.df, aes(x=p_h_experimental, ymin=fit-se.fit, ymax=fit+se.fit), linetype=2, alpha=0.1, col="#e41a1c") + 
+  geom_line(data = predict.cnidaria.df, aes(x=p_h_experimental, y=fit), col="#ca0020") + 
+  geom_ribbon(data = predict.cnidaria.df, aes(x=p_h_experimental, ymin=fit-se.fit, ymax=fit+se.fit), linetype=2, alpha=0.1, col="#ca0020") + 
   annotate(geom="text", x=6.5, y=0.85, size=3.5, colour="gray20", label=paste("χ2 p-value =\n", round(Anova(model.cnidaria)[,"Pr(>Chisq)"], digits = 3), sep=" ")) #Significance of experimental pH \nas predictor: 
 print(plot.cnidaria)
 
@@ -381,14 +381,14 @@ predict.crustacea.df <- predict.crustacea %>%
 
 plot.crustacea <- ggplot() + 
   geom_jitter(data=data.fert %>% drop_na(w) %>% 
-                filter(phylum=="Crustacea"), aes(x=p_h_experimental, y=ave_fert_proport), size=1.2, width=0.03, col="#ff7f00") +
+                filter(phylum=="Crustacea"), aes(x=p_h_experimental, y=ave_fert_proport), size=1.2, width=0.03, col="#f4a582") +
   ggtitle("Crustacea") + 
   xlab(NULL) + ylab(NULL) +
   theme_minimal() + 
   theme(plot.title = element_text(hjust = 0.5, size=13, colour="gray30")) +
   coord_cartesian(ylim = c(0, 1), xlim =c(6,8.5)) +
-  geom_line(data = predict.crustacea.df, aes(x=p_h_experimental, y=fit), col="#ff7f00") +
-  geom_ribbon(data = predict.crustacea.df, aes(x=p_h_experimental, ymin=fit-se.fit, ymax=fit+se.fit), linetype=2, alpha=0.1, col="#ff7f00")  + 
+  geom_line(data = predict.crustacea.df, aes(x=p_h_experimental, y=fit), col="#f4a582") +
+  geom_ribbon(data = predict.crustacea.df, aes(x=p_h_experimental, ymin=fit-se.fit, ymax=fit+se.fit), linetype=2, alpha=0.1, col="#f4a582")  + 
   annotate(geom="text", x=6.5, y=0.85, size=3.5, colour="gray20", label=paste("χ2 p-value =\n", round(Anova(model.crustacea)[,"Pr(>Chisq)"], digits = 3), sep=" "))
 print(plot.crustacea)
 ```
@@ -415,14 +415,14 @@ predict.echinodermata.df <- predict.echinodermata %>%
 
 plot.echino <- ggplot() + 
   geom_jitter(data=data.fert %>% drop_na(w) %>% 
-                filter(phylum=="Echinodermata"), aes(x=p_h_experimental, y=ave_fert_proport), size=1.2, width=0.03, col="#4daf4a") +
+                filter(phylum=="Echinodermata"), aes(x=p_h_experimental, y=ave_fert_proport), size=1.2, width=0.03, col="#92c5de") +
   ggtitle("Echinodermata") + 
   xlab("Experimental pH") + ylab("Proportion fertilization success") +
   theme_minimal() + 
   theme(plot.title = element_text(hjust = 0.5, size=13, colour="gray30")) +
   coord_cartesian(ylim = c(0, 1), xlim =c(6,8.5)) +
-  geom_line(data = predict.echinodermata.df, aes(x=p_h_experimental, y=fit), col="#4daf4a") +
-  geom_ribbon(data = predict.echinodermata.df, aes(x=p_h_experimental, ymin=fit-se.fit, ymax=fit+se.fit), linetype=2, alpha=0.1, col="#4daf4a") + 
+  geom_line(data = predict.echinodermata.df, aes(x=p_h_experimental, y=fit), col="#92c5de") +
+  geom_ribbon(data = predict.echinodermata.df, aes(x=p_h_experimental, ymin=fit-se.fit, ymax=fit+se.fit), linetype=2, alpha=0.1, col="#92c5de") + 
   annotate(geom="text", x=6.4, y=0.85, size=3.5, colour="gray20", label=paste("χ2 p-value =\n", round(Anova(model.echinodermata)[,"Pr(>Chisq)"], digits = 3), sep=" "))
 print(plot.echino)
 ```
@@ -449,14 +449,14 @@ predict.mollusca.df <- predict.mollusca %>%
 
 plot.mollusca <- ggplot() + 
   geom_jitter(data=data.fert %>% drop_na(w) %>% 
-                filter(phylum=="Mollusca"), aes(x=p_h_experimental, y=ave_fert_proport), size=1.2, width=0.03, col="#377eb8") +
+                filter(phylum=="Mollusca"), aes(x=p_h_experimental, y=ave_fert_proport), size=1.2, width=0.03, col="#0571b0") +
   ggtitle("Mollusca") + 
   xlab("Experimental pH") + ylab(NULL) +
   theme_minimal() + 
   theme(plot.title = element_text(hjust = 0.5, size=13, colour="gray30")) +
   coord_cartesian(ylim = c(0, 1), xlim =c(6,8.5)) +
-  geom_line(data = predict.mollusca.df, aes(x=p_h_experimental, y=fit), col="#377eb8") + 
-  geom_ribbon(data = predict.mollusca.df, aes(x=p_h_experimental, ymin=fit-se.fit, ymax=fit+se.fit), linetype=2, alpha=0.1, col="#377eb8")  + 
+  geom_line(data = predict.mollusca.df, aes(x=p_h_experimental, y=fit), col="#0571b0") + 
+  geom_ribbon(data = predict.mollusca.df, aes(x=p_h_experimental, ymin=fit-se.fit, ymax=fit+se.fit), linetype=2, alpha=0.1, col="#0571b0")  + 
   annotate(geom="text", x=6.4, y=0.9, size=3.5, colour="gray20", label=paste("χ2 p-value =\n", round(Anova(model.mollusca)[,"Pr(>Chisq)"], digits = 3), sep=" "))
 print(plot.mollusca)
 ```
@@ -470,7 +470,7 @@ annotate_figure(all.plots, left = text_grob("Proportion Fertilization Success", 
 ```
 
 
-## Inspect candidate covariates - are these important experimental design factors?  
+## Additional analysis steps, for posterity: inspect candidate covariates - are these important experimental design factors?  
 
 ### convert candidate covariates to numeric 
 
@@ -546,24 +546,3 @@ ggplotly(ggplot(data.fert, aes(x=number_males, y=ave_fert_proport)) +
 ```
 
 
-
-
-# BONEYARD 
-Old portions of the analysis that I don't yet want to remove, but probably will in the end. 
-
-### Transform proportion fertilized data to remove 1's 
-
-Transormation equation source: [https://cran.r-project.org/web/packages/betareg/vignettes/betareg.pdf](https://cran.r-project.org/web/packages/betareg/vignettes/betareg.pdf), " ... if y also assumes the extremes 0 and 1, a useful transformation in practice is (y · (n − 1) + 0.5)/n where n is the sample size (Smithson and Verkuilen 2006)."
-
-#### HOWEVER
-issue is that a few studies only had 1 trial per pH, so the transformation results in NA values 
-
-```{r}
- # data.fert$ave_fert_proport.t <- data.fert$ave_fert_proport*((data.fert$number_trials_p_h-1) + 0.5) / data.fert$number_trials_p_h
-```
-
-#### Instead, I simply subtracted 0.001 from all data (but not sure if I will use that transformed data)
-
-```{r}
-data.fert$ave_fert_proport.t <- data.fert$ave_fert_proport - 0.001
-```
