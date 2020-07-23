@@ -278,7 +278,7 @@ ggplot() +
   geom_jitter(data=drop_na(data.fert, w), aes(x=p_h_experimental, y=ave_fert_proport, group=phylum, col=phylum, label=study), size=1.2, width=0.03) + #, col="gray40"
   #facet_wrap(~phylum, scales="free") + 
   theme_minimal() +
-  ggtitle("Fertilization success ~ pH with binomial-regression model predictions (all phyla)") + 
+  ggtitle("A. Fertilization success ~ pH with model predictions (all phyla)") + 
   xlab("Experimental pH") + ylab("Proportion fertilization success") +
   scale_color_manual(name=NULL, values=c("#ca0020","#f4a582","#92c5de",'#0571b0')) + 
   theme_minimal() + 
@@ -351,7 +351,7 @@ predict.cnidaria.df <- predict.cnidaria %>%
 plot.cnidaria <- ggplot() + 
   geom_jitter(data=data.fert %>% drop_na(w) %>% 
                 filter(phylum=="Cnidaria"), aes(x=p_h_experimental, y=ave_fert_proport), size=1.2, width=0.03, col="#ca0020") +
-  ggtitle("Cnidaria") + 
+  ggtitle("B. Cnidaria") + 
   xlab(NULL) + ylab("Proportion fertilization success") +
   theme_minimal() +
   theme(plot.title = element_text(hjust = 0.5, size=13, colour="gray30")) +
@@ -382,7 +382,7 @@ predict.crustacea.df <- predict.crustacea %>%
 plot.crustacea <- ggplot() + 
   geom_jitter(data=data.fert %>% drop_na(w) %>% 
                 filter(phylum=="Crustacea"), aes(x=p_h_experimental, y=ave_fert_proport), size=1.2, width=0.03, col="#f4a582") +
-  ggtitle("Crustacea") + 
+  ggtitle("C. Crustacea") + 
   xlab(NULL) + ylab(NULL) +
   theme_minimal() + 
   theme(plot.title = element_text(hjust = 0.5, size=13, colour="gray30")) +
@@ -416,7 +416,7 @@ predict.echinodermata.df <- predict.echinodermata %>%
 plot.echino <- ggplot() + 
   geom_jitter(data=data.fert %>% drop_na(w) %>% 
                 filter(phylum=="Echinodermata"), aes(x=p_h_experimental, y=ave_fert_proport), size=1.2, width=0.03, col="#92c5de") +
-  ggtitle("Echinodermata") + 
+  ggtitle("D. Echinodermata") + 
   xlab("Experimental pH") + ylab("Proportion fertilization success") +
   theme_minimal() + 
   theme(plot.title = element_text(hjust = 0.5, size=13, colour="gray30")) +
@@ -450,7 +450,7 @@ predict.mollusca.df <- predict.mollusca %>%
 plot.mollusca <- ggplot() + 
   geom_jitter(data=data.fert %>% drop_na(w) %>% 
                 filter(phylum=="Mollusca"), aes(x=p_h_experimental, y=ave_fert_proport), size=1.2, width=0.03, col="#0571b0") +
-  ggtitle("Mollusca") + 
+  ggtitle("E. Mollusca") + 
   xlab("Experimental pH") + ylab(NULL) +
   theme_minimal() + 
   theme(plot.title = element_text(hjust = 0.5, size=13, colour="gray30")) +
