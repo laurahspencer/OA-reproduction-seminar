@@ -1,9 +1,9 @@
 {
-    "path" : "~/Documents/roberts-lab/OA-reproduction-seminar",
-    "sortOrder" : [
+    "path": "~/Documents/roberts-lab/OA-reproduction-seminar",
+    "sortOrder": [
         {
-            "ascending" : true,
-            "columnIndex" : 2
+            "ascending": true,
+            "columnIndex": 2
         }
     ]
 }
