@@ -431,36 +431,38 @@ dev.off()
 
 ```{r}
 (gg.both <- ggplot() + 
-  geom_jitter(data=drop_na(data.fert, w), aes(x=pH_delta, y=ave_fert_proport, group=phylum, col=phylum, label=study), size=1.2, width=0.03) + #, col="gray40"
-  theme_minimal() +
-  ggtitle(NULL) +
-    #ggtitle("A. Fertilization success ~ delta pH with model predictions (full pH range, all taxa)") + 
+  geom_jitter(data=drop_na(data.fert, w), aes(x=pH_delta, y=ave_fert_proport, group=phylum, col=phylum, label=study), 
+              size=1.2, width=0.03) + #, col="gray40"
+  ggtitle("(a) All taxa") + 
   xlab("delta pH") + ylab("Proportion fertilization success") +
-  scale_color_manual(name=NULL, values=c("#ca0020","#92c5de",'#0571b0')) +  #"#f4a582",
-  theme_minimal() + 
-  #coord_cartesian(ylim = c(0, 1), xlim =c(-2,0)) +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, size=13, colour="gray15")) +
+  coord_cartesian(ylim = c(0, 1), xlim =c(-2,0)) +
+   scale_color_manual(name=NULL, values=c("#ca0020","#92c5de",'#0571b0')) +  #"#f4a582",
   geom_ribbon(data = predict.test.df.df, 
               aes(x=pH_delta, ymin=fit-se.fit, ymax=fit+se.fit), 
               linetype=9, alpha=0.3, fill="#fff2ae") + 
      geom_line(data = predict.test.df.df, aes(x=pH_delta, y=fit), 
-            col="gray45", linetype=2) + 
-    #theme(legend.position = "none") +
-  geom_label(aes(x=-1.56, y=0.3), label=paste("Model with full pH range: χ2 p-value =",
+            col="gray30", linetype=2) + 
+  theme(legend.position = "none") +
+  #guides(colour = guide_legend(override.aes = list(size=4))) + 
+  geom_label(aes(x=-1.56, y=0.5), label=paste("Model with full pH range: χ2 p-value =",
                        round(Anova(best)[,"Pr(>Chisq)"], digits =5), sep=" "),
-             colour="gray40", size=3, alpha=0.3, fill="#fff2ae") +
-      guides(colour = guide_legend(override.aes = list(size=4))) + 
-  theme(legend.text = element_text(size = 12), legend.position = "top",
-        legend.margin=margin(0,0,0,0),
-        legend.box.margin=margin(-8,-8,-8,-8)) + 
+             colour="gray15", size=3, alpha=0.3, fill="#fff2ae") +
    geom_ribbon(data = predict.test.df.df.7.6, 
               aes(x=pH_delta, ymin=fit-se.fit, ymax=fit+se.fit), 
               linetype=0, alpha=0.1, fill="#2ca25f") +
    geom_line(data = predict.test.df.df.7.6, 
                  aes(x=pH_delta, y=fit), 
-                 col="gray45", linetype=1) +
-   geom_label(aes(x=-1.0, y=0.84,
+                 col="gray30", linetype=1) +
+   geom_label(aes(x=-1.2, y=0.84,
             label=paste("Model with pH ≥7.6: χ2 p-value =", round(Anova(best7.6)[,"Pr(>Chisq)"], digits =3), sep=" ")), 
-            colour="gray40", alpha=0.1, fill="#2ca25f", size=3))
+            colour="gray15", alpha=0.1, fill="#2ca25f", size=3))
+
+tiff(file = "fertilization-all-taxa-20210510.tiff", width = 1500, height=1000, res=250)
+gg.both
+dev.off()
+
 ```
 
 
@@ -531,16 +533,16 @@ predict.cnidarian.df <- predict.cnidarian %>%
 (plot.cnidarian <- ggplot() + 
   geom_jitter(data=drop_na(data.fert, w) %>% 
                 filter(phylum=="Cnidarian"), aes(x=pH_delta, y=ave_fert_proport), size=1.2, width=0.03, col="#ca0020") +
-  ggtitle("B. Cnidarian") + 
+  ggtitle("(b) Cnidarian") + 
   xlab(NULL) + ylab("Proportion fertilization success") +
   theme_minimal() +
-  theme(plot.title = element_text(hjust = 0.5, size=13, colour="gray30")) +
+  theme(plot.title = element_text(hjust = 0.5, size=13, colour="gray15")) +
   coord_cartesian(ylim = c(0, 1.1), xlim =c(-2,0)) +
   geom_ribbon(data = predict.cnidarian.df, aes(x=pH_delta, ymin=fit-se.fit, ymax=fit+se.fit),linetype=0, alpha=0.1, fill="#2ca25f") + 
-  geom_line(data = predict.cnidarian.df, aes(x=pH_delta, y=fit), col="gray45", linetype=1) +
+  geom_line(data = predict.cnidarian.df, aes(x=pH_delta, y=fit), col="gray30", linetype=1) +
   geom_label(aes(x=-.8, y=0.83,
             label=paste("χ2 p-value =", round(Anova(model.cnidarian)[,"Pr(>Chisq)"], digits = 3), sep=" ")),
-            colour="gray40", alpha=0.1, size=5, fill="#2ca25f", size=3))
+            colour="gray15", alpha=0.1, size=5, fill="#2ca25f", size=3))
 
 ```
 ### Echinoderm
@@ -578,29 +580,29 @@ predict.echinoderm.df7.6 <- predict.echinoderm7.6 %>%
 (plot.echino <- ggplot() + 
   geom_jitter(data=drop_na(data.fert, w) %>% 
                 filter(phylum=="Echinoderm"), aes(x=pH_delta, y=ave_fert_proport), size=1.2, width=0.03, col="#92c5de") +
-  ggtitle("C. Echinoderm") + 
+  ggtitle("(c) Echinoderm") + 
   xlab("Delta pH") + ylab("Proportion fertilization success") +
   theme_minimal() + 
   coord_cartesian(ylim = c(0, 1.1), xlim =c(-2,0)) +
-  theme(plot.title = element_text(hjust = 0.5, size=13, colour="gray30")) +
+  theme(plot.title = element_text(hjust = 0.5, size=13, colour="gray15")) +
 geom_ribbon(data = predict.echinoderm.df, 
               aes(x=pH_delta, ymin=fit-se.fit, ymax=fit+se.fit), 
               linetype=9, alpha=0.3, fill="#fff2ae") + 
      geom_line(data = predict.echinoderm.df, aes(x=pH_delta, y=fit), 
-            col="gray45", linetype=2) + 
+            col="gray30", linetype=2) + 
     theme(legend.position = "none") +
   geom_label(aes(x=-1.4, y=0.29), label=paste("Model with full pH range: χ2 p-value =",
                        round(Anova(model.echinoderm)[,"Pr(>Chisq)"], digits =4), sep=" "),
-             colour="gray40", size=5, alpha=0.3, fill="#fff2ae") +
+             colour="gray15", size=5, alpha=0.3, fill="#fff2ae") +
    geom_ribbon(data = predict.echinoderm.df7.6, 
               aes(x=pH_delta, ymin=fit-se.fit, ymax=fit+se.fit), 
               linetype=0, alpha=0.1, fill="#2ca25f") +
    geom_line(data = predict.echinoderm.df7.6, 
                  aes(x=pH_delta, y=fit), 
-                 col="gray45", linetype=1) +
+                 col="gray30", linetype=1) +
    geom_label(aes(x=-1.2, y=0.8,
             label=paste("Model with pH ≥7.6: χ2 p-value =", round(Anova(model.echinoderm7.6)[,"Pr(>Chisq)"], digits =3), sep=" ")), 
-            colour="gray40", size=5, alpha=0.1, fill="#2ca25f"))
+            colour="gray15", size=5, alpha=0.1, fill="#2ca25f"))
 
 
   # geom_line(data = predict.echinoderm.df, aes(x=pH_delta, y=fit), col="#92c5de") +
@@ -644,37 +646,41 @@ predict.mollusc.df7.6 <- predict.mollusc7.6 %>%
 ggplot() + 
   geom_jitter(data=drop_na(data.fert, w) %>% 
                 filter(phylum=="Mollusc"), aes(x=pH_delta, y=ave_fert_proport), size=1.2, width=0.03, col="#0571b0") +
-  ggtitle("D. Mollusc") + 
+  ggtitle("(d) Mollusc") + 
   xlab("Delta pH") + ylab(NULL) +
   theme_minimal() + 
-  theme(plot.title = element_text(hjust = 0.5, size=13, colour="gray30")) +
+  theme(plot.title = element_text(hjust = 0.5, size=13, colour="gray15")) +
   coord_cartesian(ylim = c(0, 1.1), xlim =c(-2,0)) +
 
   geom_ribbon(data = predict.mollusc.df, 
               aes(x=pH_delta, ymin=fit-se.fit, ymax=fit+se.fit), 
               linetype=9, alpha=0.3, fill="#fff2ae") + 
      geom_line(data = predict.mollusc.df, aes(x=pH_delta, y=fit), 
-            col="gray45", linetype=2) + 
+            col="gray30", linetype=2) + 
     theme(legend.position = "none") +
-  geom_label(aes(x=-1.4, y=0.9), label=paste("Model with full pH range: χ2 p-value =",
+  geom_label(aes(x=-1.3, y=0.4), label=paste("Model with full pH range: χ2 p-value =",
                        round(Anova(model.mollusc)[,"Pr(>Chisq)"], digits =3), sep=" "),
-             colour="gray40", size=5, alpha=0.3, fill="#fff2ae") +
+             colour="gray15", size=5, alpha=0.3, fill="#fff2ae") +
    geom_ribbon(data = predict.mollusc.df7.6, 
               aes(x=pH_delta, ymin=fit-se.fit, ymax=fit+se.fit), 
               linetype=0, alpha=0.1, fill="#2ca25f") +
    geom_line(data = predict.mollusc.df7.6, 
                  aes(x=pH_delta, y=fit), 
-                 col="gray45", linetype=1) +
-   geom_label(aes(x=-.5, y=1.1,
+                 col="gray30", linetype=1) +
+   geom_label(aes(x=-1.1, y=0.9,
             label=paste("Model with pH ≥7.6: χ2 p-value =", round(Anova(model.mollusc7.6)[,"Pr(>Chisq)"], digits =3), sep=" ")), 
-            colour="gray40", alpha=0.1, fill="#2ca25f", size=5))
+            colour="gray15", alpha=0.1, fill="#2ca25f", size=5))
 ```
 
 ```{r}
-all.plots <- ggarrange(plot.cnidarian + ylab(NULL) + xlab(NULL),  plot.echino + ylab(NULL) + xlab(NULL), plot.mollusc, ncol=1, nrow=3)
+all.plots <- ggarrange(gg.both + ylab(NULL) + xlab(NULL) + theme(legend.position="none"), 
+                       plot.cnidarian + ylab(NULL) + xlab(NULL),  
+                       plot.echino + ylab(NULL) + xlab(NULL), 
+                       plot.mollusc, ncol=1, nrow=4,
+                       common.legend = TRUE, legend="top")
 #all.plots <- ggarrange(plot.cnidarian + ylab(NULL),  plot.echino + ylab(NULL), plot.mollusc + rremove("y.text"), ncol=1, nrow=3)
-png(file = "fertilization-by-phylum-20210308.png", width = 550, height=850)
-annotate_figure(all.plots, left = text_grob("Proportion Fertilization Success", color = "gray20", rot = 90))
+tiff(file = "fertilization-by-phylum-20210308.tiff", width=2200, height=3700, res=250)
+annotate_figure(all.plots, left = text_grob("Proportion Fertilization Success", color = "gray15", rot = 90))
 dev.off()
 
 #add the following to remove x and y axis labels: ` + rremove("x.text") + rremove("y.text")`
