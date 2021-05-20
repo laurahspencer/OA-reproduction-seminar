@@ -537,7 +537,7 @@ predict.cnidarian.df <- predict.cnidarian %>%
   xlab(NULL) + ylab("Proportion fertilization success") +
   theme_minimal() +
   theme(plot.title = element_text(hjust = 0.5, size=13, colour="gray15")) +
-  coord_cartesian(ylim = c(0, 1.1), xlim =c(-2,0)) +
+  coord_cartesian(ylim = c(0, 1), xlim =c(-2,0)) +
   geom_ribbon(data = predict.cnidarian.df, aes(x=pH_delta, ymin=fit-se.fit, ymax=fit+se.fit),linetype=0, alpha=0.1, fill="#2ca25f") + 
   geom_line(data = predict.cnidarian.df, aes(x=pH_delta, y=fit), col="gray30", linetype=1) +
   geom_label(aes(x=-.8, y=0.83,
@@ -583,7 +583,7 @@ predict.echinoderm.df7.6 <- predict.echinoderm7.6 %>%
   ggtitle("(c) Echinoderm") + 
   xlab("Delta pH") + ylab("Proportion fertilization success") +
   theme_minimal() + 
-  coord_cartesian(ylim = c(0, 1.1), xlim =c(-2,0)) +
+  coord_cartesian(ylim = c(0, 1), xlim =c(-2,0)) +
   theme(plot.title = element_text(hjust = 0.5, size=13, colour="gray15")) +
 geom_ribbon(data = predict.echinoderm.df, 
               aes(x=pH_delta, ymin=fit-se.fit, ymax=fit+se.fit), 
@@ -650,7 +650,7 @@ ggplot() +
   xlab("Delta pH") + ylab(NULL) +
   theme_minimal() + 
   theme(plot.title = element_text(hjust = 0.5, size=13, colour="gray15")) +
-  coord_cartesian(ylim = c(0, 1.1), xlim =c(-2,0)) +
+  coord_cartesian(ylim = c(0, 1), xlim =c(-2,0)) +
 
   geom_ribbon(data = predict.mollusc.df, 
               aes(x=pH_delta, ymin=fit-se.fit, ymax=fit+se.fit), 
@@ -673,13 +673,13 @@ ggplot() +
 ```
 
 ```{r}
-all.plots <- ggarrange(gg.both + ylab(NULL) + xlab(NULL) + theme(legend.position="none"), 
+(all.plots <- ggarrange(gg.both + ylab(NULL) + xlab(NULL)+ guides(colour = guide_legend(override.aes = list(size=6))), 
                        plot.cnidarian + ylab(NULL) + xlab(NULL),  
                        plot.echino + ylab(NULL) + xlab(NULL), 
                        plot.mollusc, ncol=1, nrow=4,
-                       common.legend = TRUE, legend="top")
+                       common.legend = TRUE, legend="top"))
 #all.plots <- ggarrange(plot.cnidarian + ylab(NULL),  plot.echino + ylab(NULL), plot.mollusc + rremove("y.text"), ncol=1, nrow=3)
-tiff(file = "fertilization-by-phylum-20210308.tiff", width=2200, height=3700, res=250)
+tiff(file = "fertilization-all-figures-20210308.tiff", width=2200, height=4500, res=250)
 annotate_figure(all.plots, left = text_grob("Proportion Fertilization Success", color = "gray15", rot = 90))
 dev.off()
 
