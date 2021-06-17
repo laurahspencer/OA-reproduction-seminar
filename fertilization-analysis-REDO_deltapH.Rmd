@@ -446,9 +446,9 @@ dev.off()
             col="gray30", linetype=2) + 
   theme(legend.position = "none") +
   #guides(colour = guide_legend(override.aes = list(size=4))) + 
-  geom_label(aes(x=-1.56, y=0.5), label=paste("Model with full pH range: χ2 p-value =",
+  geom_label(aes(x=-1.54, y=0.5), label=paste("Model with full pH range: χ2 p-value =",
                        round(Anova(best)[,"Pr(>Chisq)"], digits =5), sep=" "),
-             colour="gray15", size=3, alpha=0.3, fill="#fff2ae") +
+             colour="gray15", size=5, alpha=0.3, fill="#fff2ae") +
    geom_ribbon(data = predict.test.df.df.7.6, 
               aes(x=pH_delta, ymin=fit-se.fit, ymax=fit+se.fit), 
               linetype=0, alpha=0.1, fill="#2ca25f") +
@@ -457,7 +457,7 @@ dev.off()
                  col="gray30", linetype=1) +
    geom_label(aes(x=-1.2, y=0.84,
             label=paste("Model with pH ≥7.6: χ2 p-value =", round(Anova(best7.6)[,"Pr(>Chisq)"], digits =3), sep=" ")), 
-            colour="gray15", alpha=0.1, fill="#2ca25f", size=3))
+            colour="gray15", alpha=0.1, fill="#2ca25f", size=5))
 
 tiff(file = "fertilization-all-taxa-20210510.tiff", width = 1500, height=1000, res=250)
 gg.both
